@@ -1,0 +1,31 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    Makefile.tests                                     :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2025/11/01 14:07:56 by itaharbo          #+#    #+#              #
+#    Updated: 2025/11/01 16:38:59 by itaharbo         ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
+CC		= c++
+CFLAGS	= -Wall -Wextra -Werror -std=c++98 -I includes
+
+SRCS	= srcs/Server.cpp
+TESTS	= tests/test_Server.cpp
+TARGET	= runTests
+
+all: $(TARGET)
+
+$(TARGET): $(SRCS) $(TESTS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS) $(TESTS) -lgtest -lpthread
+
+run: $(TARGET)
+	./$(TARGET)
+
+clean:
+	rm -f $(TARGET)
+
+.PHONY: all run clean

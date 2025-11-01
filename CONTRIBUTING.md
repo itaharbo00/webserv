@@ -1,0 +1,170 @@
+# Guide de Contribution pour le Projet Webserv
+
+Bienvenue dans le projet Webserv !
+Ce guide vous fournira les informations nécessaires pour contribuer efficacement.
+Ce guide couvre le workflow Git complet (pull, branch, commit, push, PR), les tests, le style de code,
+et la résolution des conflits pour éviter les problèmes fréquents.
+
+## Organisation du dépôt
+
+Le dépôt est structuré de manière à faciliter la collaboration et la gestion des contributions :
+
+```
+webserv/
+├── includes/           # Fichiers d'en-tête
+├── srcs/               # Code source du serveur web
+├── subject/            # Ressource du sujet
+├── testers/            # Outils de test
+├── tests/              # Tests unitaires et d'intégration
+├── .gitignore          # Fichier à ignorer par Git
+├── Makefile            # Fichier de compilation
+├── Makefile.tests      # Fichier de compilation des tests
+├── CONTRIBUTING.md     # Guide de contribution
+└── README.md           # Documentation principale
+```
+
+## Stratégie de branches
+
+- `main` → code stable
+- `dev` → intégration
+- `feature/...` → nouvelle fonctionnalité
+- `fix/...` → correction de bug
+
+## Workflow Git
+
+1. Clonez le dépôt :
+
+```bash
+git clone <URL-du-depot>
+cd webserv
+git status
+```
+
+2. Se placer sur dev et se mettre à jour : 
+
+```bash
+git checkout dev
+git pull origin dev
+```
+
+2. Créez une branche pour votre fonctionnalité ou correction de bug :
+
+```bash
+git checkout -b feature/nom-de-la-fonctionnalite
+ou
+```bash
+git checkout -b fix/description-du-bug
+```
+
+3. Faites vos modifications dans la branche créée.
+
+4. Ajoutez et commitez vos changements avec des messages clairs :
+
+```bash
+git add .
+git commit -m "feat: Description claire de la modification"
+```
+5. Avant de pousser vos modifications, assurez-vous que votre branche est à jour avec
+la branche de destination (dev) :
+
+```bash
+# Mettre à jour la branche de developpement
+git checkout dev
+git pull origin dev
+
+# Revenir à votre branche de fonctionnalité
+git checkout feature/nom-de-la-fonctionnalite
+
+# Fusionner les dernières modifications de dev dans votre branche
+git merge dev
+```
+
+6. Résolvez les conflits s'il y en a, puis poussez votre branche :
+
+```bash
+git push origin feature/nom-de-la-fonctionnalite
+```
+
+7. Option1 : Ouvrez une Pull Request (PR) sur GitHub pour que vos modifications soient examinées et fusionnées
+dans la branche principale.
+
+Option2 : Fusionnez directement votre branche dans dev après revue de code.
+
+```bash
+# Se placer sur dev
+git checkout dev
+
+# Fusionner la branche de fonctionnalité
+git merge feature/nom-de-la-fonctionnalite
+
+# Pousser les modifications fusionnées
+git push origin dev
+```
+
+8. Supprimez la branche locale et distante après la fusion :
+
+```bash
+git branch -d feature/nom-de-la-fonctionnalite
+git push origin --delete feature/nom-de-la-fonctionnalite
+```
+
+Resolution des conflits : voir la section "Résolution des conflits" ci-dessous.
+
+- 1.Identifiez les fichiers en conflit.
+
+- 2.Ouvrez les fichiers et recherchez les sections marquées par Git.
+  (<<<<<, =====, >>>>>)
+
+- 3.Modifiez le code pour résoudre les conflits.
+
+- 4.Ajoutez les fichiers résolus :
+```bash
+git add <fichier_conflit>
+```
+
+- 5.Continuez la fusion :
+```bash
+git commit
+```
+
+- 6.Poussez les modifications résolues :
+```bash
+git push origin feature/nom-de-la-fonctionnalite
+```
+
+### Convention de commit
+
+Utilisez des messages de commit clairs et descriptifs. Voici quelques exemples de préfixes courants :
+
+  - `feat:` pour une nouvelle fonctionnalité
+  - `fix:` pour une correction de bug
+  - `refactor:` pour des modifications de code qui n'ajoutent pas de fonctionnalité ni ne corrigent de bug
+  - `style:` pour des modifications de style (formatage, espaces, etc.)
+  - `test:` pour l'ajout ou la modification de tests
+  - `docs:` pour des modifications de documentation
+
+- Exemple : `feat: ajouter la gestion des requêtes POST`
+
+## Tests
+
+Avant de soumettre une Pull Request, assurez-vous que tous les tests passent. Utilisez le Makefile pour
+compiler et exécuter les tests :
+
+```bash
+make -f Makefile.tests run
+ou
+make -f Makefile.tests
+./runTests
+```
+
+Puis effacer les fichiers compilés des tests :
+
+```bash
+make -f Makefile.tests clean
+```
+
+## Style de code
+
+Respectez les conventions de style de code C++98.
+
+Merci pour votre travail sur le projet Webserv !
