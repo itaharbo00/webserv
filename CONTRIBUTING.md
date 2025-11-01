@@ -163,6 +163,26 @@ Puis effacer les fichiers compilés des tests :
 make -f Makefile.tests clean
 ```
 
+## Issues
+
+Utilisez les issues pour signaler des bugs ou proposer des améliorations. Assurez-vous de fournir
+des descriptions claires et des étapes pour reproduire les problèmes.
+
+1. Créez une nouvelle issue sur GitHub (onglet "New Issue").
+2. Remplissez le titre et la description avec des informations détaillées.
+3. Assignez des labels appropriés (bug, enhancement, question, etc.).
+4. Assignez l'issue à vous-même ou à un autre contributeur si nécessaire.
+5. Cliquez sur "Submit new issue".
+
+## Bonnes pratiques
+
+- Ne jamais pousser directement sur les branches `main` ou `dev`.
+- Faites des commits fréquents avec des messages clairs.
+- Documentez vos modifications dans le code et dans la documentation si nécessaire.
+- Tirez régulièrement les dernières modifications de la branche principale pour éviter les conflits majeurs.
+- Revoyez le code des autres contributeurs et fournissez des commentaires constructifs.
+- Faire des issues pour signaler les bugs ou proposer des améliorations.
+
 ## Style de code
 
 Respectez les conventions de style de code C++98.
