@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/01 17:12:53 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/01 17:19:41 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/10 20:37:08 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ inline int	printTestSummary()
 {
 	std::cout << "\nTests passed: " << testsPassed << std::endl;
 	std::cout << "Tests failed: " << testsFailed << std::endl;
-	return testsFailed > 0; // Retourne 0 si tous les tests passent, sinon 1
+	return testsFailed > 0;	// Retourne 0 si tous les tests passent, sinon 1
 }
 
-#endif // TEST_FRAMEWORK_HPP
+#endif	// TEST_FRAMEWORK_HPP

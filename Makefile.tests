@@ -6,7 +6,7 @@
 #    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/11/01 14:07:56 by itaharbo          #+#    #+#              #
-#    Updated: 2025/11/01 16:38:59 by itaharbo         ###   ########.fr        #
+#    Updated: 2025/11/10 20:34:51 by itaharbo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,7 +20,7 @@ TARGET	= runTests
 all: $(TARGET)
 
 $(TARGET): $(SRCS) $(TESTS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS) $(TESTS) -lgtest -lpthread
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS) $(TESTS)
 
 run: $(TARGET)
 	./$(TARGET)
