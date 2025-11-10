@@ -51,9 +51,15 @@ git pull origin dev
 
 ```bash
 git checkout -b feature/nom-de-la-fonctionnalite
-ou
-```bash
+# ou
 git checkout -b fix/description-du-bug
+```
+Puis poussez la branche créée vers le dépôt distant :
+
+```bash
+git push -u origin feature/nom-de-la-fonctionnalite
+# ou
+git push -u origin fix/description-du-bug
 ```
 
 3. Faites vos modifications dans la branche créée.
