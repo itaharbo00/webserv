@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:26 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/10 23:04:34 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/11 22:40:59 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 # include <cstring>
 # include <cstdlib>
 # include <vector>
+# include <map>
 # include <unistd.h>
 # include <sys/types.h>		// data types
 # include <sys/socket.h>	// socket, bind, listen, setsockopt
@@ -27,6 +28,7 @@
 # include <poll.h>			// poll, struct pollfd
 # include <signal.h>
 # include <cerrno>
+# include "HttpRequest.hpp"
 
 class Server
 {
@@ -43,7 +45,9 @@ private:
 	struct addrinfo				*p_addrinfo;	// Informations d'adresse du serveur
 	std::string					p_host;			// Adresse IP ou nom d'hôte
 	std::string					p_port;			// Port d'écoute
-	std::vector<struct pollfd>	p_fds;	// Descripteurs de fichiers des clients connectés
+	std::vector<struct pollfd>	p_fds;			// Descripteurs de fichiers des clients connectés
+
+	std::map<int, HttpRequest>	p_clients_request;	// Map des clients connectés
 
 	void						p_initSocket();					// Initialisation du socket
 	void						p_setNonBlocking(int fd);		// Mettre un descripteur en mode non-bloquant

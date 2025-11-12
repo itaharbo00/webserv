@@ -1,0 +1,117 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpRequest_utils.cpp                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/11/11 17:56:43 by itaharbo          #+#    #+#             */
+/*   Updated: 2025/11/11 23:37:14 by itaharbo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "HttpRequest.hpp"
+
+// Trim les espaces en début et fin de chaîne
+void	HttpRequest::trimString(std::string &str)
+{
+	size_t	start = str.find_first_not_of(" \t\r\n");
+	size_t	end = str.find_last_not_of(" \t\r\n");
+
+	if (start == std::string::npos || end == std::string::npos)
+		str = "";
+	else
+		str = str.substr(start, end - start + 1);
+}
+
+void	HttpRequest::validateRequestLine()
+{
+	// Valider les composants de la requête
+	if (p_method.empty())
+		throw std::runtime_error("Empty HTTP method");
+	if (p_uri.empty())
+		throw std::runtime_error("Empty URI");
+	if (p_http_version.empty())
+		throw std::runtime_error("Empty HTTP version");
+
+	// Vérifier la version HTTP
+	if (p_http_version != "HTTP/1.1" && p_http_version != "HTTP/1.0")
+		throw std::runtime_error("Unsupported HTTP version: " + p_http_version);
+
+	// Vérifier que la méthode est valide
+	if (p_method != "GET" && p_method != "POST" && p_method != "DELETE")
+		throw std::runtime_error("Unsupported HTTP method: " + p_method);
+
+	// Vérifier que l'URI commence par '/' ou est vide
+	if (p_uri[0] != '/')
+		throw std::runtime_error("Invalid URI: " + p_uri);
+
+	// Vérifier directory traversal
+	if (p_uri.find("..") != std::string::npos)
+		throw std::runtime_error("Directory traversal attempt in URI: " + p_uri);
+
+	// Vérifier longueur de l'URI
+	if (p_uri.length() > 2048)
+		throw std::runtime_error("URI too long");
+
+	// Vérifier caractères invalides
+	for (size_t i = 0; i < p_uri.length(); ++i)
+	{
+		unsigned char	c = static_cast<unsigned char>(p_uri[i]);
+		// Bloquer caractères de contrôle
+		if (c < 32 || c == 127)  // Caractères ASCII non-imprimables
+			throw std::runtime_error("Invalid character in URI");
+	}
+}
+
+// Validate un header critique spécifique
+void	HttpRequest::validateCriticalHeader(const std::string &key, const std::string &value)
+{
+	if (key == "Content-Length")
+	{
+		if (value.empty())
+			throw std::runtime_error("Empty Content-Length value");
+		// Valider que Content-Length est un entier positif
+		for (size_t i = 0; i < value.length(); ++i)
+		{
+			if (!std::isdigit(value[i]))
+				throw std::runtime_error("Invalid Content-Length value: " + value);
+		}
+
+		// Vérifier que la valeur n'est pas déraisonnablement grande
+		std::istringstream	iss(value);
+		long				content_length;
+		iss >> content_length;
+		if (content_length < 0 || content_length > MAX_REQUEST_SIZE) // Limite arbitraire de 10MB
+			throw std::runtime_error("Unreasonable Content-Length value: " + value);
+	}
+	else if (key == "Host" && value.empty())
+			throw std::runtime_error("Empty Host header");
+	else if (key == "Transfer-Encoding" && value != "chunked" && value != "identity")
+			throw std::runtime_error("Unsupported Transfer-Encoding: " + value);
+}
+
+// Gérer les headers en double
+void	HttpRequest::handleDuplicateHeaders(const std::string &key, const std::string &value)
+{
+	// Pour les headers critiques, rejeter les duplicatas
+	if (key == "Content-Length" || key == "Host" || key == "Transfer-Encoding"
+		|| key == "Content-Type")
+	{
+		if (p_headers.find(key) != p_headers.end())
+			throw std::runtime_error("Duplicate critical header: " + key);
+		p_headers[key] = value;
+	}
+	else if (key == "Accept" || key == "Cache-Control" || key == "Cookie"
+		|| key == "Accept-Encoding" || key == "Accept-Language")
+	{
+		// Pour certains headers, concaténer les valeurs
+		std::map<std::string, std::string>::iterator	it = p_headers.find(key);
+		if (it != p_headers.end())
+			it->second += ", " + value; // Concaténer les valeurs avec une virgule
+		else
+			p_headers[key] = value;
+	}
+	else	// Pour les autres headers, écraser la valeur précédente
+		p_headers[key] = value; // Ici, on écrase simplement
+}

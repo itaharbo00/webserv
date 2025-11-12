@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/10 23:09:33 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 15:01:32 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,6 @@ Server::Server(const std::string &host, const std::string &port)
 			throw std::runtime_error("Invalid port number (must be 1-65535)");
 		
 		p_initSocket(); // Initialisation du socket lors de la construction du serveur
-		std::cout << "Server initialized on " << p_host << ":" << p_port << std::endl;
 	}
 	catch (const std::exception &e)
 	{
@@ -45,8 +44,6 @@ Server::~Server()
 
 	if (p_addrinfo)	// Verifier que p_addrinfo n'est pas NULL avant d'appeler freeaddrinfo
 		freeaddrinfo(p_addrinfo);
-
-	std::cout << "Server on " << p_host << ":" << p_port << " destroyed." << std::endl;
 }
 
 void	Server::p_initSocket()	// Creation, bind et listen du socket
@@ -61,7 +58,8 @@ void	Server::p_initSocket()	// Creation, bind et listen du socket
 		throw std::runtime_error("getaddrinfo() failed");
 
 	// Création du socket
-	p_socket_fd = socket(p_addrinfo->ai_family, p_addrinfo->ai_socktype, p_addrinfo->ai_protocol);
+	p_socket_fd = socket(p_addrinfo->ai_family, p_addrinfo->ai_socktype,
+		p_addrinfo->ai_protocol);
 	if (p_socket_fd < 0)
 		throw std::runtime_error("socket() failed");
 
@@ -81,14 +79,23 @@ void	Server::p_initSocket()	// Creation, bind et listen du socket
 
 void	Server::p_setNonBlocking(int fd)	// Mettre un descripteur en mode non-bloquant
 {
+	int	saved_errno;
+
 	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)	// Modifie les flags du fichier descriptor
 	{
-		std::cerr << "fcntl() failed to set non-blocking mode" << std::endl;
+		saved_errno = errno;
 		close(fd);
-		return;
+		throw std::runtime_error("fcntl() failed to set non-blocking: " +
+			std::string(std::strerror(saved_errno)));
 	}
+
 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0)	// Fermer le fd lors d'un execve
-		std::cerr << "fcntl() failed to set FD_CLOEXEC" << std::endl;
+	{
+		saved_errno = errno;
+		close(fd);
+		throw std::runtime_error("fcntl() failed to set FD_CLOEXEC: " +
+			std::string(std::strerror(saved_errno)));
+	}
 }
 
 void	Server::p_initServerPollfd()	// Initialiser le pollfd du serveur
@@ -105,10 +112,13 @@ void	Server::p_acceptNewClient()	// Accepter une nouvelle connexion client
 	int	client_fd = accept(p_socket_fd, NULL, NULL);
 	if (client_fd < 0)
 	{
-		if (errno != EWOULDBLOCK && errno != EAGAIN)
-			std::cerr << "accept() failed" << std::endl;
-		return;
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
+			return;	// Pas de client disponible, c'est normal
+
+		// Erreurs critiques
+		throw std::runtime_error("accept() failed");
 	}
+
 	p_setNonBlocking(client_fd); // Mettre le descripteur en mode non-bloquant
 
 	struct pollfd	client_pollfd;
@@ -116,38 +126,71 @@ void	Server::p_acceptNewClient()	// Accepter une nouvelle connexion client
 	client_pollfd.events = POLLIN; // Surveiller les événements de lecture
 	client_pollfd.revents = 0;
 	p_fds.push_back(client_pollfd); // Ajouter le client à la liste des fds surveillés
-
-	std::cout << "New client connected (fd: " << client_fd << ")" << std::endl;
 }
 
 bool	Server::p_handleClient(size_t index)	// Gérer la communication avec un client
 {
 	int		client_fd = p_fds[index].fd;
-	char	buffer[1024]; // Buffer pour recevoir les données
-	std::memset(buffer, 0, sizeof(buffer));
+	char	buffer[4096]; // Buffer pour recevoir les données
 
 	// Recevoir des données du client
 	ssize_t	bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 	if (bytes_received > 0)
 	{
-		std::cout << "Received " << bytes_received << " bytes from client (fd: "
-			<< client_fd << "): " << buffer << std::endl;
+		buffer[bytes_received] = '\0';
 
-		// Envoyer une réponse simple au client
-		const char	*response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, World!";
-		send(client_fd, response, std::strlen(response), 0);
+		try
+		{
+			// Ajouter les données reçues à l'objet HttpRequest du client
+			p_clients_request[client_fd].appendData(std::string(buffer, bytes_received));
+			// Tenter de parser la requête
+			if (p_clients_request[client_fd].isComplete())
+			{
+				HttpRequest	&request = p_clients_request[client_fd];
+				request.parse();
+				// TODO creer une réponse basée sur la requête
+				const char	*response = "HTTP/1.1 200 OK\r\n"
+										"Content-Type: text/plain\r\n"
+										"Content-Length: 13\r\n"
+										"\r\n"
+										"Hello, World!";
+				send(client_fd, response, std::strlen(response), 0);
+				p_clients_request.erase(client_fd); // Supprimer la requête après traitement
+			}
+		}
+		catch (const std::exception &e)
+		{
+			std::string	error_response = "HTTP/1.1 400 Bad Request\r\n"
+										 "Content-Type: text/plain\r\n"
+										 "Content-Length: 11\r\n"
+										 "\r\n"
+										 "Bad Request";
+										 
+			send(client_fd, error_response.c_str(), error_response.length(), 0);
+
+			p_clients_request.erase(client_fd); // Supprimer la requête erronée
+			close(client_fd);
+			p_fds.erase(p_fds.begin() + index);
+			return false;	// Client déconnecté
+		}
 		return true;	// Client toujours connecté
+	}
+	else if (bytes_received == 0)
+	{
+		// Client a fermé la connexion (normal)
+		close(client_fd);
+		p_fds.erase(p_fds.begin() + index);
+		p_clients_request.erase(client_fd);
+		return false;
 	}
 	else
 	{
-		if (bytes_received == 0)	// Connexion fermée par le client
-			std::cout << "Client disconnected (fd: " << client_fd << ")" << std::endl;
-		else	// Erreur lors de la réception
-			std::cerr << "recv() failed for client (fd: " << client_fd << ")" << std::endl;
+		// Erreur recv()
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
+			return true;	// Pas de données disponibles
 
-		close(client_fd);
-		p_fds.erase(p_fds.begin() + index); // Retirer le client de la liste
-		return false;	// Client déconnecté (supprimé)
+		// Erreur grave
+		throw std::runtime_error("recv() failed");
 	}
 }
 
@@ -155,15 +198,13 @@ static bool	g_isRunning = false;	// Variable globale pour contrôler l'exécutio
 
 static void	handleSignal(int signum)	// Gérer les signaux (ex: SIGINT)
 {
-	std::cout << "\nCaught signal " << signum << ", shutting down server..." << std::endl;
+	(void)signum;
 	g_isRunning = false; // Variable globale pour arrêter la boucle du serveur
 }
 
 void	Server::start()	// Méthode pour démarrer le serveur
 {
-	std::cout << "Server started on " << p_host << ":" << p_port << std::endl;
-
-	signal(SIGINT, handleSignal);		// Gérer l'interruption clavier (Ctrl+C)
+	signal(SIGINT, handleSignal);	// Gérer l'interruption clavier (Ctrl+C)
 	signal(SIGTERM, handleSignal);	// Gérer le signal de terminaison
 
 	p_setNonBlocking(p_socket_fd); // Mettre le socket du serveur en mode non-bloquant
@@ -190,15 +231,39 @@ void	Server::start()	// Méthode pour démarrer le serveur
 				if (p_fds[i].revents & POLLIN)	// Vérifier les événements de lecture
 				{
 					if (p_fds[i].fd == p_socket_fd)
-						p_acceptNewClient();	// Nouvelle connexion entrante
-					else if (!p_handleClient(i)) // Données dispo à lire d'un client existant
-							--i;	// Ajuster l'index si un client a été supprimé
+					{
+						try
+						{
+							p_acceptNewClient();	// Nouvelle connexion entrante
+						}
+						catch (const std::exception&)
+						{
+						}
+					}
+					else
+					{
+						try
+						{
+							if (!p_handleClient(i)) // Données dispo à lire d'un client existant
+								--i;	// Ajuster l'index si un client a été supprimé
+						}
+						catch (const std::exception&)
+						{
+							if (i > 0)
+							{
+								close(p_fds[i].fd);
+								p_fds.erase(p_fds.begin() + i);
+								--i;
+							}
+						}
+					}
 				}
 			}
 		}
 		catch (const std::exception &e)
 		{
-			std::cerr << "Server error: " << e.what() << std::endl;
+			std::cerr << "Critical server error: " << e.what() << std::endl;
+			break;  // Sortir de la boucle proprement
 		}
 	}
 }

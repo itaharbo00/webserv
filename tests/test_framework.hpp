@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/01 17:12:53 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/10 20:37:08 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/11 23:03:47 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,6 +50,21 @@ inline void	assertEqual(int expected, int actual, const std::string &testName)
 	{
 		std::cout << "[FAIL] " << testName << " (Expected: " << expected
 			<< ", Actual: " << actual << ")" << std::endl;
+		testsFailed++;
+	}
+}
+
+inline void	assertEqual(const std::string &expected, const std::string &actual, const std::string &testName)
+{
+	if (expected == actual)
+	{
+		std::cout << "[OK]   " << testName << std::endl;
+		testsPassed++;
+	}
+	else
+	{
+		std::cout << "[FAIL] " << testName << " (Expected: \"" << expected
+			<< "\", Actual: \"" << actual << "\")" << std::endl;
 		testsFailed++;
 	}
 }

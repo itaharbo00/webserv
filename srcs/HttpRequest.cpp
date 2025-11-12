@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 14:02:11 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/11 17:31:17 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 17:54:10 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,8 @@
 
 HttpRequest::HttpRequest()
 	: p_rawRequest(""), p_method(""), p_uri(""), p_http_version(""),
-	  p_headers(), p_body(""), p_isComplete(false)
+	  p_headers(), p_body(""), p_isComplete(false),
+	  p_headersCompleted(false), p_expectedBodySize(0)
 {
 }
 
@@ -22,114 +23,153 @@ HttpRequest::~HttpRequest()
 {
 }
 
-// Retourne la méthode HTTP de la requête
-std::string	HttpRequest::getMethod() const
+// Parse la requête HTTP brute
+void	HttpRequest::parse()
 {
-	return p_method;
-}
+	// Flux pour lire la requête ligne par ligne
+	std::istringstream	request_stream(p_rawRequest);
+	std::string			line;
+	bool				is_first_line = true;
 
-// Retourne l'URI de la requête
-std::string	HttpRequest::getUri() const
-{
-	return p_uri;
-}
+	while (std::getline(request_stream, line))
+	{
+		// Vérifier la taille de chaque ligne d'en-tête
+		if (line.size() > MAX_HEADER_LINE_SIZE)
+			throw std::runtime_error("Header line too long");
 
-// Retourne la version HTTP de la requête
-std::string	HttpRequest::getHttpVersion() const
-{
-	return p_http_version;
-}
+		if (line == "\r" || line.empty() || line == "\n")
+			break;	 // Fin des headers
 
-// Retourne les headers de la requête HTTP
-std::map<std::string, std::string>	HttpRequest::getHeaders() const
-{
-	return p_headers;
-}
+		if (is_first_line)
+		{
+			parseRequestLine(line);
+			is_first_line = false;
+		}
+		else
+			parseHeaderLine(line);
+	}
 
-// Retourne le corps de la requête HTTP
-std::string	HttpRequest::getBody() const
-{
-	return p_body;
-}
+	// Vérifier que le header Host est présent (requis en HTTP/1.1)
+	if (p_headers.find("Host") == p_headers.end())
+		throw std::runtime_error("Missing required Host header");
 
-// Retourne si la requête est complète
-bool	HttpRequest::isComplete() const
-{
-	return p_isComplete;
-}
-
-// Trim les espaces en début et fin de chaîne
-void	HttpRequest::trimString(std::string &str)
-{
-	size_t	start = str.find_first_not_of(" \t\r\n");
-	size_t	end = str.find_last_not_of(" \t\r\n");
-
-	if (start == std::string::npos || end == std::string::npos)
-		str = "";
-	else
-		str = str.substr(start, end - start + 1);
+	parseBody(request_stream); // Parser le corps de la requête
 }
 
 // Ajoute des données brutes à la requête
-void	HttpRequest::appendData(const std::string &data)
+/*void	HttpRequest::appendData(const std::string &data)
 {
+	// Vérifier la taille totale de la requête
+	if (p_rawRequest.size() + data.size() > MAX_REQUEST_SIZE)
+		throw std::runtime_error("Request size limit exceeded");
+
+	// Ajouter les données reçues au buffer brut
 	p_rawRequest += data;
-	if (p_rawRequest.find("\r\n\r\n") != std::string::npos) // Fin des headers
-		p_isComplete = true;
-}
 
-// Parse la ligne de requête (Request Line)
-void	HttpRequest::parseRequestLine(const std::string &line)
-{
-	std::istringstream	iss(line);
-
-	if (!(iss >> p_method >> p_uri >> p_http_version))
-		throw std::runtime_error("Malformed request line: " + line);
-	trimString(p_method);
-	trimString(p_uri);
-	trimString(p_http_version);
-
-	// Enlever \r final
-	if (!p_http_version.empty() && 
-	    p_http_version[p_http_version.length() - 1] == '\r')
+	// Vérifier si les headers sont complets pour déterminer la taille attendue du corps
+	if (!p_isComplete && p_rawRequest.find("\r\n\r\n") != std::string::npos) 
 	{
-		p_http_version.erase(p_http_version.length() - 1);
+		p_headersCompleted = true;
+
+		std::string			headersPart = p_rawRequest.substr(0,
+								p_rawRequest.find("\r\n\r\n"));
+		std::istringstream	headerStream(headersPart);
+		std::string			line;
+
+		while (std::getline(headerStream, line))
+		{
+			if (!line.empty() && line[line.size() - 1] == '\r')
+				line.erase(line.size() - 1);
+
+			if (line.find("Content-Length:") != std::string::npos)
+			{
+				std::string			lenStr = line.substr(15);
+				trimString(lenStr);
+				std::istringstream	iss(lenStr);
+				iss >> p_expectedBodySize;
+
+				if (p_expectedBodySize > MAX_REQUEST_SIZE)
+					throw std::runtime_error("Content-Length exceeds limit");
+				break;
+			}
+		}
 	}
 
-	// Valider les composants de la requête
-	if (p_method.empty())
-		throw std::runtime_error("Empty HTTP method");
-	if (p_uri.empty())
-		throw std::runtime_error("Empty URI");
-	if (p_http_version.empty())
-		throw std::runtime_error("Empty HTTP version");
-
-	// Vérifier la version HTTP
-	if (p_http_version != "HTTP/1.1" && p_http_version != "HTTP/1.0")
-		throw std::runtime_error("Unsupported HTTP version: " + p_http_version);
-
-	// Vérifier que la méthode est valide
-	if (p_method != "GET" && p_method != "POST" && p_method != "DELETE")
-		throw std::runtime_error("Unsupported HTTP method: " + p_method);
-
-	// Vérifier que l'URI commence par '/' ou est vide
-	if (p_uri[0] != '/')
-		throw std::runtime_error("Invalid URI: " + p_uri);
-
-	// Vérifier directory traversal
-	if (p_uri.find("..") != std::string::npos)
-		throw std::runtime_error("Directory traversal attempt in URI: " + p_uri);
-
-	// Vérifier longueur de l'URI
-	if (p_uri.length() > 2048)
-		throw std::runtime_error("URI too long");
-
-	// Vérifier caractères invalides
-	for (size_t i = 0; i < p_uri.length(); ++i)
+	// Vérifier si la requête est complète
+	if (p_headersCompleted)
 	{
-		unsigned char c = static_cast<unsigned char>(p_uri[i]);
-		// Bloquer caractères de contrôle
-		if (c < 32 || c == 127)  // Caractères ASCII non-imprimables
-			throw std::runtime_error("Invalid character in URI");
+		size_t	header_end = p_rawRequest.find("\r\n\r\n") + 4;
+		size_t	body_size = p_rawRequest.size() - header_end;
+
+		if (p_expectedBodySize == 0 || body_size >= p_expectedBodySize)
+			p_isComplete = true;
+	}
+}*/
+void	HttpRequest::appendData(const std::string &data)
+{
+	// 1. Limiter la taille totale de la requête pour éviter les abus
+	if (p_rawRequest.size() + data.size() > MAX_REQUEST_SIZE)
+		throw std::runtime_error("Request size limit exceeded");
+	p_rawRequest += data;
+
+	// 2. Détecter la fin des en-têtes : présence de "\r\n\r\n"
+	std::size_t	headerEnd = p_rawRequest.find("\r\n\r\n");
+	if (!p_headersCompleted && headerEnd != std::string::npos)
+	{
+		// Marquer les en-têtes comme reçus
+		p_headersCompleted = true;
+
+		// Extraire la zone des en-têtes
+		std::string			headersPart = p_rawRequest.substr(0, headerEnd);
+		std::istringstream	stream(headersPart);
+		std::string			line;
+		bool				foundLength = false;
+		bool				foundEncoding = false;
+
+		// Parcourir chaque ligne d’en‑tête
+		while (std::getline(stream, line))
+		{
+			// enlever un éventuel '\r'
+			if (!line.empty() && line[line.size()-1] == '\r')
+				line.erase(line.size()-1);
+
+			// Détecter la présence des deux en-têtes
+			if (line.find("Content-Length:") == 0)
+				foundLength = true;
+			if (line.find("Transfer-Encoding:") == 0)
+				foundEncoding = true;
+		}
+
+		// 3. Si les deux en-têtes sont présents, on marque la requête comme complète
+		//    et parseBody() lèvera l’exception lors de l’appel de parse()
+		if (foundLength && foundEncoding)
+		{
+			p_isComplete = true;
+			return;
+		}
+
+		// 4. Sinon, on calcule la taille attendue du corps si Content-Length existe
+		if (foundLength)
+		{
+			std::size_t			pos = headersPart.find("Content-Length:");
+			std::size_t			endline = headersPart.find("\r\n", pos);
+			std::string			lenValue = headersPart.substr(pos + 15, endline - pos - 15);
+			trimString(lenValue);
+
+			std::istringstream	iss(lenValue);
+			iss >> p_expectedBodySize;
+
+			if (p_expectedBodySize > MAX_REQUEST_SIZE)
+				throw std::runtime_error("Content-Length exceeds limit");
+		}
+	}
+
+	// 5. Si les en-têtes sont complets, vérifier la taille du corps reçu
+	if (p_headersCompleted)
+	{
+		std::size_t	bodySize = p_rawRequest.size() - (headerEnd + 4);
+		// Si pas de Content-Length (p_expectedBodySize==0), la requête est complète dès la fin des headers
+		if (p_expectedBodySize == 0 || bodySize >= p_expectedBodySize)
+			p_isComplete = true;
 	}
 }
