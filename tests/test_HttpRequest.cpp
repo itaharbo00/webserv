@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 23:00:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/11 23:03:11 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 18:52:06 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -473,6 +473,247 @@ void	testWhitespaceInHeaders()
 }
 
 // ============================================================================
+// Test Suite 21: Connection Header Management
+// ============================================================================
+
+void	testConnectionClose()
+{
+	std::cout << "\n=== Test Suite 21: Connection: close ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Connection: close\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_TRUE(req.shouldCloseConnection(), "Connection: close sets shouldCloseConnection to true");
+	ASSERT_EQUAL("close", req.getHeaders()["Connection"], "Connection header stored correctly");
+}
+
+void	testConnectionKeepAlive()
+{
+	std::cout << "\n=== Test Suite 22: Connection: keep-alive ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Connection: keep-alive\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_TRUE(!req.shouldCloseConnection(), "Connection: keep-alive sets shouldCloseConnection to false");
+	ASSERT_EQUAL("keep-alive", req.getHeaders()["Connection"], "Connection header stored correctly");
+}
+
+void	testConnectionDefaultHTTP11()
+{
+	std::cout << "\n=== Test Suite 23: Default Connection for HTTP/1.1 ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_TRUE(!req.shouldCloseConnection(), "HTTP/1.1 without Connection header defaults to keep-alive");
+}
+
+void	testConnectionDefaultHTTP10()
+{
+	std::cout << "\n=== Test Suite 24: Default Connection for HTTP/1.0 ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.0\r\n"
+	                      "Host: localhost\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_TRUE(req.shouldCloseConnection(), "HTTP/1.0 without Connection header defaults to close");
+}
+
+// ============================================================================
+// Test Suite 25: Cookie Header Management
+// ============================================================================
+
+void	testSingleCookie()
+{
+	std::cout << "\n=== Test Suite 25: Single Cookie ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Cookie: session_id=abc123\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_EQUAL("abc123", req.getCookie("session_id"), "Single cookie parsed correctly");
+	ASSERT_EQUAL("", req.getCookie("nonexistent"), "Nonexistent cookie returns empty string");
+}
+
+void	testMultipleCookies()
+{
+	std::cout << "\n=== Test Suite 26: Multiple Cookies in One Header ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Cookie: session_id=abc123; user_id=42; token=xyz789\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_EQUAL("abc123", req.getCookie("session_id"), "First cookie parsed");
+	ASSERT_EQUAL("42", req.getCookie("user_id"), "Second cookie parsed");
+	ASSERT_EQUAL("xyz789", req.getCookie("token"), "Third cookie parsed");
+}
+
+void	testMultipleCookieHeaders()
+{
+	std::cout << "\n=== Test Suite 27: Multiple Cookie Headers ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Cookie: session_id=abc123\r\n"
+	                      "Cookie: user_id=42\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_EQUAL("abc123", req.getCookie("session_id"), "First cookie header parsed");
+	ASSERT_EQUAL("42", req.getCookie("user_id"), "Second cookie header parsed");
+}
+
+void	testCookiesWithSpaces()
+{
+	std::cout << "\n=== Test Suite 28: Cookies with Spaces ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Cookie: name = John Doe ; age = 30 \r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_EQUAL("John Doe", req.getCookie("name"), "Cookie with spaces parsed and trimmed");
+	ASSERT_EQUAL("30", req.getCookie("age"), "Second cookie with spaces parsed");
+}
+
+void	testEmptyCookie()
+{
+	std::cout << "\n=== Test Suite 29: Empty Cookie Value ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Cookie: empty=\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_EQUAL("", req.getCookie("empty"), "Empty cookie value handled correctly");
+}
+
+void	testCookieWithSpecialChars()
+{
+	std::cout << "\n=== Test Suite 30: Cookie with Special Characters ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Cookie: token=abc-123_xyz.789\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_EQUAL("abc-123_xyz.789", req.getCookie("token"), "Cookie with special chars parsed");
+}
+
+void	testMalformedCookie()
+{
+	std::cout << "\n=== Test Suite 30B: Malformed Cookie (no '=') ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Cookie: malformed; valid=value\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	// Le cookie malformé est ignoré silencieusement
+	ASSERT_EQUAL("", req.getCookie("malformed"), "Malformed cookie (no '=') is ignored");
+	ASSERT_EQUAL("value", req.getCookie("valid"), "Valid cookie after malformed one is parsed");
+}
+
+// ============================================================================
+// Test Suite 31: Combined Connection and Cookie Tests
+// ============================================================================
+
+void	testConnectionAndCookies()
+{
+	std::cout << "\n=== Test Suite 31: Connection + Cookies Combined ===" << std::endl;
+
+	HttpRequest req;
+	std::string request = "GET / HTTP/1.1\r\n"
+	                      "Host: localhost\r\n"
+	                      "Connection: keep-alive\r\n"
+	                      "Cookie: session_id=abc123; user_id=42\r\n"
+	                      "User-Agent: TestClient/1.0\r\n"
+	                      "\r\n";
+
+	req.appendData(request);
+	req.parse();
+
+	ASSERT_TRUE(!req.shouldCloseConnection(), "Connection keep-alive works with other headers");
+	ASSERT_EQUAL("abc123", req.getCookie("session_id"), "Cookies work with Connection header");
+	ASSERT_EQUAL("42", req.getCookie("user_id"), "Multiple cookies work with Connection header");
+	ASSERT_EQUAL("TestClient/1.0", req.getHeaders()["User-Agent"], "Other headers still work");
+}
+
+void	testPOSTWithConnectionAndCookies()
+{
+	std::cout << "\n=== Test Suite 32: POST with Connection + Cookies ===" << std::endl;
+
+	HttpRequest req;
+	std::string body = "data=test";
+	std::ostringstream oss;
+	oss << "POST /submit HTTP/1.1\r\n"
+	    << "Host: localhost\r\n"
+	    << "Connection: close\r\n"
+	    << "Cookie: session_id=xyz789\r\n"
+	    << "Content-Length: " << body.length() << "\r\n"
+	    << "\r\n"
+	    << body;
+
+	req.appendData(oss.str());
+	req.parse();
+
+	ASSERT_EQUAL("POST", req.getMethod(), "POST method parsed");
+	ASSERT_TRUE(req.shouldCloseConnection(), "Connection close in POST");
+	ASSERT_EQUAL("xyz789", req.getCookie("session_id"), "Cookie in POST request");
+	ASSERT_EQUAL(body, req.getBody(), "Body in POST with Connection and Cookie");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -519,6 +760,25 @@ int	main()
 	// Edge Cases
 	testEmptyHeaderValue();
 	testWhitespaceInHeaders();
+
+	// Connection Header Tests
+	testConnectionClose();
+	testConnectionKeepAlive();
+	testConnectionDefaultHTTP11();
+	testConnectionDefaultHTTP10();
+
+	// Cookie Tests
+	testSingleCookie();
+	testMultipleCookies();
+	testMultipleCookieHeaders();
+	testCookiesWithSpaces();
+	testEmptyCookie();
+	testCookieWithSpecialChars();
+	testMalformedCookie();
+
+	// Combined Tests
+	testConnectionAndCookies();
+	testPOSTWithConnectionAndCookies();
 
 	std::cout << "\n========================================" << std::endl;
 	return printTestSummary();

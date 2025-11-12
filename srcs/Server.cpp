@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 15:01:32 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 18:24:00 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,7 +155,16 @@ bool	Server::p_handleClient(size_t index)	// Gérer la communication avec un cli
 										"\r\n"
 										"Hello, World!";
 				send(client_fd, response, std::strlen(response), 0);
-				p_clients_request.erase(client_fd); // Supprimer la requête après traitement
+				
+				if (request.shouldCloseConnection())
+				{
+					close(client_fd);
+					p_fds.erase(p_fds.begin() + index);
+					p_clients_request.erase(client_fd);
+					return (false);
+				}
+				else
+					p_clients_request.erase(client_fd); // Supprimer la requête après traitement pour la prochaine
 			}
 		}
 		catch (const std::exception &e)

@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 20:34:27 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 15:17:46 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 18:55:00 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,4 +102,58 @@ void	HttpRequest::parseBody(std::istringstream &stream)
 	// Parser le corps avec Content-Length
 	if (p_headers.count("Content-Length"))
 		contentLengthBody(stream);
+}
+
+
+// Parse l'en-tête Cookie selon le format : name1=value1; name2=value2
+// Format attendu : Les cookies sont séparés par "; "
+// Les noms et valeurs sont automatiquement trimmés (espaces supprimés)
+// Limitations actuelles :
+//   - Pas de validation stricte des caractères (permissif)
+//   - Les cookies malformés (sans '=') sont ignorés silencieusement
+
+void	HttpRequest::parseCookies(const std::string &cookieHeader)
+{
+	std::stringstream	ss(cookieHeader);
+	std::string			pair;
+
+	// RFC-like validation: cookie-name should be a token (no CTLs or separators).
+	// We implement a conservative validation: allow alphanum and a small set of symbols.
+	const char *allowed_extra = "-_.!#$%&'*+^`|~";
+
+	while (std::getline(ss, pair, ';'))
+	{
+		size_t	eq_pos = pair.find('=');
+		if (eq_pos == std::string::npos)
+		{
+			// Cookie malformé (pas de '=') -> ignorer
+			continue;
+		}
+
+		std::string	key = pair.substr(0, eq_pos);
+		std::string	value = pair.substr(eq_pos + 1);
+		trimString(key);
+		trimString(value);
+
+		if (key.empty())
+			continue;
+
+		// Valider les caractères du nom de cookie
+		bool valid = true;
+		for (size_t i = 0; i < key.size(); ++i)
+		{
+			unsigned char c = static_cast<unsigned char>(key[i]);
+			if (std::isalnum(c))
+				continue;
+			if (std::strchr(allowed_extra, c) != NULL)
+				continue;
+			valid = false;
+			break;
+		}
+
+		if (!valid)
+			continue; // Ignorer les noms non-conformes
+
+		p_cookies[key] = value;
+	}
 }

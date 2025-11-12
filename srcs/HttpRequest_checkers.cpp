@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 17:56:43 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/11 23:37:14 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 18:52:06 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,9 @@ void	HttpRequest::validateRequestLine()
 	// Vérifier la version HTTP
 	if (p_http_version != "HTTP/1.1" && p_http_version != "HTTP/1.0")
 		throw std::runtime_error("Unsupported HTTP version: " + p_http_version);
+
+	if (p_http_version == "HTTP/1.1")
+		p_closeConnection = false;
 
 	// Vérifier que la méthode est valide
 	if (p_method != "GET" && p_method != "POST" && p_method != "DELETE")
@@ -94,6 +97,30 @@ void	HttpRequest::validateCriticalHeader(const std::string &key, const std::stri
 // Gérer les headers en double
 void	HttpRequest::handleDuplicateHeaders(const std::string &key, const std::string &value)
 {
+	// Gestion spéciale de Connection : met à jour p_closeConnection
+	if (key == "Connection")
+	{
+		if (value == "close")
+			p_closeConnection = true;
+		else if (value == "keep-alive")
+			p_closeConnection = false;
+		// Note: "upgrade" pourrait être supporté ici pour WebSocket
+		p_headers[key] = value;
+		return;
+	}
+	
+	// Gestion spéciale de Cookie : concaténation avec "; " et parsing immédiat
+	if (key == "Cookie")
+	{
+		if (p_headers.find(key) != p_headers.end())
+			p_headers[key] += "; " + value;
+		else
+			p_headers[key] = value;
+		// Ne pas parser ici — parsera une seule fois après réception complète des headers
+		// (évite le reparsing répétitif lorsque plusieurs en-têtes Cookie arrivent).
+		return;
+	}
+	
 	// Pour les headers critiques, rejeter les duplicatas
 	if (key == "Content-Length" || key == "Host" || key == "Transfer-Encoding"
 		|| key == "Content-Type")
@@ -102,16 +129,20 @@ void	HttpRequest::handleDuplicateHeaders(const std::string &key, const std::stri
 			throw std::runtime_error("Duplicate critical header: " + key);
 		p_headers[key] = value;
 	}
-	else if (key == "Accept" || key == "Cache-Control" || key == "Cookie"
+	// Pour certains headers, concaténer les valeurs avec ", "
+	// Note: Cookie est géré au-dessus, donc retiré de cette liste
+	else if (key == "Accept" || key == "Cache-Control"
 		|| key == "Accept-Encoding" || key == "Accept-Language")
 	{
-		// Pour certains headers, concaténer les valeurs
 		std::map<std::string, std::string>::iterator	it = p_headers.find(key);
 		if (it != p_headers.end())
-			it->second += ", " + value; // Concaténer les valeurs avec une virgule
+			it->second += ", " + value;
 		else
 			p_headers[key] = value;
 	}
-	else	// Pour les autres headers, écraser la valeur précédente
-		p_headers[key] = value; // Ici, on écrase simplement
+	else
+	{
+		// Pour les autres headers, écraser la valeur précédente (comportement par défaut)
+		p_headers[key] = value;
+	}
 }

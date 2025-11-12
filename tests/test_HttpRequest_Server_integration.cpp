@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 23:00:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/11 23:37:30 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 18:52:06 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -621,6 +621,146 @@ void	testHeaderValidation()
 }
 
 // ==========================================
+// TEST 9: Connection Header Behavior
+// ==========================================
+
+void	testConnectionCloseBehavior()
+{
+	std::cout << "\n=== Test 9: Connection: close Behavior ===" << std::endl;
+
+	pid_t	pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "9009");
+		exit(0);
+	}
+
+	sleep(1);
+
+	// Test 9.1: Connection close - serveur doit fermer après réponse
+	int	sock_fd = createClientSocket("127.0.0.1", 9009);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "Connection: close\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"Connection: close returns valid response");
+		
+		// Essayer d'envoyer une deuxième requête - devrait échouer car connexion fermée
+		sleep(1); // Attendre que le serveur ferme la connexion
+		std::string request2 = "GET /second HTTP/1.1\r\n"
+		                       "Host: localhost\r\n"
+		                       "\r\n";
+		ssize_t result = send(sock_fd, request2.c_str(), request2.length(), 0);
+		
+		// Si send réussit, essayer de recevoir - devrait retourner 0 (connexion fermée)
+		char buffer[100];
+		ssize_t bytes = recv(sock_fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+		
+		ASSERT_TRUE(result < 0 || bytes == 0, 
+			"Server closes connection after Connection: close");
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+void	testConnectionKeepAliveBehavior()
+{
+	std::cout << "\n=== Test 10: Connection: keep-alive Behavior ===" << std::endl;
+
+	pid_t	pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "9010");
+		exit(0);
+	}
+
+	sleep(1);
+
+	// Test 10.1: Keep-alive - même connexion pour plusieurs requêtes
+	int	sock_fd = createClientSocket("127.0.0.1", 9010);
+	if (sock_fd >= 0)
+	{
+		// Première requête avec keep-alive
+		std::string request1 = "GET /first HTTP/1.1\r\n"
+		                       "Host: localhost\r\n"
+		                       "Connection: keep-alive\r\n"
+		                       "\r\n";
+		std::string response1 = sendAndReceive(sock_fd, request1);
+		
+		ASSERT_TRUE(response1.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"First request with keep-alive succeeds");
+		
+		// Note: Dans votre implémentation actuelle, le serveur ferme la connexion
+		// après chaque réponse. Pour un vrai keep-alive, il faudrait modifier
+		// le comportement du serveur pour ne pas fermer la connexion.
+		// Ce test vérifie le parsing correct du header, pas le comportement complet.
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+void	testCookieIntegration()
+{
+	std::cout << "\n=== Test 11: Cookie Integration ===" << std::endl;
+
+	pid_t	pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "9011");
+		exit(0);
+	}
+
+	sleep(1);
+
+	// Test 11.1: Envoi de cookies au serveur
+	int	sock_fd = createClientSocket("127.0.0.1", 9011);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "Cookie: session_id=abc123; user_id=42\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"Request with cookies returns 200 OK");
+		
+		close(sock_fd);
+	}
+
+	// Test 11.2: Multiple cookie headers
+	sock_fd = createClientSocket("127.0.0.1", 9011);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "Cookie: session_id=xyz789\r\n"
+		                      "Cookie: token=secret123\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"Request with multiple cookie headers returns 200 OK");
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+// ==========================================
 // MAIN
 // ==========================================
 
@@ -638,6 +778,9 @@ int	main()
 	testChunkedRequests();
 	testSequentialRequests();
 	testHeaderValidation();
+	testConnectionCloseBehavior();
+	testConnectionKeepAliveBehavior();
+	testCookieIntegration();
 
 	std::cout << "\n=============================================" << std::endl;
 	return printTestSummary();

@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 17:57:43 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/11 17:58:08 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 18:55:45 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,4 +46,19 @@ std::string	HttpRequest::getBody() const
 bool	HttpRequest::isComplete() const
 {
 	return p_isComplete;
+}
+
+// Retourne si la connexion doit être fermée après la requête
+bool	HttpRequest::shouldCloseConnection() const
+{
+	return (this->p_closeConnection);
+}
+
+// Retourne la valeur d'un cookie spécifique
+std::string	HttpRequest::getCookie(const std::string &key) const
+{
+	std::map<std::string, std::string>::const_iterator	it = p_cookies.find(key);
+	if (it != p_cookies.end())
+		return (it->second);
+	return ("");
 }

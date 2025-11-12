@@ -6,7 +6,7 @@
 #    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/11/01 14:07:56 by itaharbo          #+#    #+#              #
-#    Updated: 2025/11/11 23:03:10 by itaharbo         ###   ########.fr        #
+#    Updated: 2025/11/12 18:56:57 by itaharbo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,7 +17,7 @@ SRCS_SERVER	= srcs/Server.cpp
 SRCS_HTTP	= srcs/HttpRequest.cpp \
 			  srcs/HttpRequest_parsing.cpp \
 			  srcs/HttpRequest_body.cpp \
-			  srcs/HttpRequest_utils.cpp \
+			  srcs/HttpRequest_checkers.cpp \
 			  srcs/HttpRequest_getters.cpp
 
 SRCS_ALL	= $(SRCS_SERVER) $(SRCS_HTTP)

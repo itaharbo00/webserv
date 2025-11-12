@@ -6,16 +6,19 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 14:02:11 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 17:54:10 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 18:55:53 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HttpRequest.hpp"
 
-HttpRequest::HttpRequest()
-	: p_rawRequest(""), p_method(""), p_uri(""), p_http_version(""),
-	  p_headers(), p_body(""), p_isComplete(false),
-	  p_headersCompleted(false), p_expectedBodySize(0)
+// p_closeConnection est initialisé à true (comportement HTTP/1.0 par défaut)
+// En HTTP/1.1, la connexion est "keep-alive" par défaut : validateRequestLine()
+// mettra p_closeConnection à false quand la version "HTTP/1.1" est détectée.
+// Ce comportement suit les recommandations de RFC7230 / RFC9112 (connexions persistantes).
+HttpRequest::HttpRequest() : p_rawRequest(""), p_method(""), p_uri(""), p_http_version(""),
+	  p_headers(), p_cookies(), p_body(""), p_isComplete(false),
+	  p_headersCompleted(false), p_expectedBodySize(0), p_closeConnection(true)
 {
 }
 
@@ -52,6 +55,10 @@ void	HttpRequest::parse()
 	// Vérifier que le header Host est présent (requis en HTTP/1.1)
 	if (p_headers.find("Host") == p_headers.end())
 		throw std::runtime_error("Missing required Host header");
+
+	// Si un en-tête Cookie a été reçu (ou concaténé), le parser une seule fois ici.
+	if (p_headers.find("Cookie") != p_headers.end())
+		parseCookies(p_headers["Cookie"]);
 
 	parseBody(request_stream); // Parser le corps de la requête
 }
