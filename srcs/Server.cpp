@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 18:24:00 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 23:09:44 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -148,14 +148,23 @@ bool	Server::p_handleClient(size_t index)	// Gérer la communication avec un cli
 			{
 				HttpRequest	&request = p_clients_request[client_fd];
 				request.parse();
-				// TODO creer une réponse basée sur la requête
-				const char	*response = "HTTP/1.1 200 OK\r\n"
-										"Content-Type: text/plain\r\n"
-										"Content-Length: 13\r\n"
-										"\r\n"
-										"Hello, World!";
-				send(client_fd, response, std::strlen(response), 0);
-				
+
+				HttpResponse	response;
+
+				response.setHttpVersion(request.getHttpVersion());
+				response.setStatusCode(200);
+				response.setHeader("Content-Type", "text/plain");
+				response.setBody("Hello, World!");
+				if (request.shouldCloseConnection())
+				{
+					response.setHeader("Connection", "close");
+				}
+				else
+					response.setHeader("Connection", "keep-alive");
+
+				std::string	response_str = response.toString();
+				send(client_fd, response_str.c_str(), response_str.length(), 0);
+
 				if (request.shouldCloseConnection())
 				{
 					close(client_fd);
@@ -163,19 +172,33 @@ bool	Server::p_handleClient(size_t index)	// Gérer la communication avec un cli
 					p_clients_request.erase(client_fd);
 					return (false);
 				}
-				else
-					p_clients_request.erase(client_fd); // Supprimer la requête après traitement pour la prochaine
+				else	// Supprimer la requête après traitement pour la prochaine
+					p_clients_request.erase(client_fd);
 			}
 		}
 		catch (const std::exception &e)
 		{
-			std::string	error_response = "HTTP/1.1 400 Bad Request\r\n"
-										 "Content-Type: text/plain\r\n"
-										 "Content-Length: 11\r\n"
-										 "\r\n"
-										 "Bad Request";
-										 
-			send(client_fd, error_response.c_str(), error_response.length(), 0);
+			HttpResponse	errorResponse;
+
+			// Essayer d'obtenir la version HTTP de la requête, sinon HTTP/1.1 par défaut
+			std::string version = "HTTP/1.1";
+			try
+			{
+				version = p_clients_request[client_fd].getHttpVersion();
+				if (version.empty())
+					version = "HTTP/1.1";
+			}
+			catch (...)
+			{
+			}
+			errorResponse.setHttpVersion(version);
+			errorResponse.setStatusCode(400); // Bad Request
+			errorResponse.setHeader("Content-Type", "text/plain");
+			errorResponse.setBody("Bad Request");
+			errorResponse.setHeader("Connection", "close");
+			std::string	error_response_str = errorResponse.toString();
+			send(client_fd, error_response_str.c_str(),
+				error_response_str.length(), 0);
 
 			p_clients_request.erase(client_fd); // Supprimer la requête erronée
 			close(client_fd);

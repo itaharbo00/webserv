@@ -6,7 +6,7 @@
 #    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/11/01 14:07:56 by itaharbo          #+#    #+#              #
-#    Updated: 2025/11/12 18:56:57 by itaharbo         ###   ########.fr        #
+#    Updated: 2025/11/12 23:09:44 by itaharbo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,23 +14,26 @@ CC		= c++
 CFLAGS	= -Wall -Wextra -Werror -std=c++98 -I includes
 
 SRCS_SERVER	= srcs/Server.cpp
-SRCS_HTTP	= srcs/HttpRequest.cpp \
-			  srcs/HttpRequest_parsing.cpp \
-			  srcs/HttpRequest_body.cpp \
-			  srcs/HttpRequest_checkers.cpp \
-			  srcs/HttpRequest_getters.cpp
+SRCS_HTTP	= srcs/HttpRequest/HttpRequest.cpp \
+			  srcs/HttpRequest/HttpRequest_parsing.cpp \
+			  srcs/HttpRequest/HttpRequest_body.cpp \
+			  srcs/HttpRequest/HttpRequest_checkers.cpp \
+			  srcs/HttpRequest/HttpRequest_getters.cpp
+SRCS_RESPONSE = srcs/HttpResponse/HttpResponse.cpp
 
-SRCS_ALL	= $(SRCS_SERVER) $(SRCS_HTTP)
+SRCS_ALL	= $(SRCS_SERVER) $(SRCS_HTTP) $(SRCS_RESPONSE)
 
 TEST_SERVER			= tests/test_Server.cpp
 TEST_HTTP			= tests/test_HttpRequest.cpp
+TEST_RESPONSE		= tests/test_HttpResponse.cpp
 TEST_INTEGRATION	= tests/test_HttpRequest_Server_integration.cpp
 
 TARGET_SERVER		= runTests_Server
 TARGET_HTTP			= runTests_HttpRequest
+TARGET_RESPONSE		= runTests_HttpResponse
 TARGET_INTEGRATION	= runTests_Integration
 
-all: $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_INTEGRATION)
+all: $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_RESPONSE) $(TARGET_INTEGRATION)
 
 # Tests unitaires Server uniquement
 $(TARGET_SERVER): $(SRCS_ALL) $(TEST_SERVER)
@@ -40,7 +43,11 @@ $(TARGET_SERVER): $(SRCS_ALL) $(TEST_SERVER)
 $(TARGET_HTTP): $(SRCS_HTTP) $(TEST_HTTP)
 	$(CC) $(CFLAGS) -o $(TARGET_HTTP) $(SRCS_HTTP) $(TEST_HTTP)
 
-# Tests d'intégration Server + HttpRequest
+# Tests unitaires HttpResponse uniquement
+$(TARGET_RESPONSE): $(SRCS_RESPONSE) $(TEST_RESPONSE)
+	$(CC) $(CFLAGS) -o $(TARGET_RESPONSE) $(SRCS_RESPONSE) $(TEST_RESPONSE)
+
+# Tests d'intégration Server + HttpRequest + HttpResponse
 $(TARGET_INTEGRATION): $(SRCS_ALL) $(TEST_INTEGRATION)
 	$(CC) $(CFLAGS) -o $(TARGET_INTEGRATION) $(SRCS_ALL) $(TEST_INTEGRATION)
 
@@ -50,12 +57,15 @@ run_server: $(TARGET_SERVER)
 run_http: $(TARGET_HTTP)
 	./$(TARGET_HTTP)
 
+run_response: $(TARGET_RESPONSE)
+	./$(TARGET_RESPONSE)
+
 run_integration: $(TARGET_INTEGRATION)
 	./$(TARGET_INTEGRATION)
 
-run_all: run_http run_server run_integration
+run_all: run_http run_response run_server run_integration
 
 clean:
-	rm -f $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_INTEGRATION)
+	rm -f $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_RESPONSE) $(TARGET_INTEGRATION)
 
-.PHONY: all run_server run_http run_integration run_all clean
+.PHONY: all run_server run_http run_response run_integration run_all clean

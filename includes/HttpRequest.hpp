@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 14:02:13 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 18:55:21 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 21:42:05 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,10 +38,11 @@ public:
 	std::string							getHttpVersion() const;
 	std::map<std::string, std::string>	getHeaders() const;
 	std::string							getBody() const;
+	std::string							getCookie(const std::string &key) const;
 	bool								isComplete() const;
 	bool								shouldCloseConnection() const;
-	std::string							getCookie(const std::string &key) const;
 
+	// Modifiers
 	void								appendData(const std::string &data);
 	void								parse();
 
@@ -78,4 +79,4 @@ private:
 											const std::string &value);
 };
 
-#endif
+#endif	// HTTPREQUEST_HPP

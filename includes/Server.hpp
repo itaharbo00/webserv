@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:26 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/11 22:40:59 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 22:29:54 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,7 @@
 # include <signal.h>
 # include <cerrno>
 # include "HttpRequest.hpp"
+# include "HttpResponse.hpp"
 
 class Server
 {
@@ -56,4 +57,4 @@ private:
 	bool						p_handleClient(size_t index);	// Gérer la communication avec un client
 };
 
-#endif
+#endif	// SERVER_HPP

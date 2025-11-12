@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 23:00:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 18:52:06 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/12 23:09:44 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -761,6 +761,306 @@ void	testCookieIntegration()
 }
 
 // ==========================================
+// TEST 12: HttpResponse Format Integration
+// ==========================================
+
+void	testHttpResponseFormat()
+{
+	std::cout << "\n=== Test 12: HttpResponse Format Integration ===" << std::endl;
+
+	pid_t	pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "9012");
+		exit(0);
+	}
+
+	sleep(1);
+
+	int	sock_fd = -1;
+
+	// Test 12.1: Basic response format
+	sock_fd = createClientSocket("127.0.0.1", 9012);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"Response starts with HTTP/1.1 200 OK");
+		ASSERT_TRUE(response.find("Content-Length:") != std::string::npos, 
+			"Response contains Content-Length header");
+		ASSERT_TRUE(response.find("\r\n\r\n") != std::string::npos, 
+			"Response has proper header/body separator");
+		
+		close(sock_fd);
+	}
+
+	// Test 12.2: HTTP/1.0 version adaptation
+	sock_fd = createClientSocket("127.0.0.1", 9012);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.0\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.0 200 OK") != std::string::npos, 
+			"Response adapts to HTTP/1.0 version");
+		
+		close(sock_fd);
+	}
+
+	// Test 12.3: Connection: close behavior
+	sock_fd = createClientSocket("127.0.0.1", 9012);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "Connection: close\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("Connection: close") != std::string::npos, 
+			"Response includes Connection: close header");
+		
+		close(sock_fd);
+	}
+
+	// Test 12.4: Connection: keep-alive behavior
+	sock_fd = createClientSocket("127.0.0.1", 9012);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "Connection: keep-alive\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("Connection: keep-alive") != std::string::npos, 
+			"Response includes Connection: keep-alive header");
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+// ==========================================
+// TEST 13: HttpResponse Error Codes
+// ==========================================
+
+void	testHttpResponseErrorCodes()
+{
+	std::cout << "\n=== Test 13: HttpResponse Error Codes ===" << std::endl;
+
+	pid_t	pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "9013");
+		exit(0);
+	}
+
+	sleep(1);
+
+	int	sock_fd = -1;
+
+	// Test 13.1: 400 Bad Request (invalid method)
+	sock_fd = createClientSocket("127.0.0.1", 9013);
+	if (sock_fd >= 0)
+	{
+		std::string request = "INVALID /path HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 400") != std::string::npos || 
+		            response.find("HTTP/1.1 501") != std::string::npos, 
+			"Invalid method returns 400 or 501");
+		
+		close(sock_fd);
+	}
+
+	// Test 13.2: 400 Bad Request (malformed request)
+	sock_fd = createClientSocket("127.0.0.1", 9013);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET\r\n\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 400") != std::string::npos || 
+		            response.find("HTTP/1.0 400") != std::string::npos, 
+			"Malformed request returns 400");
+		
+		close(sock_fd);
+	}
+
+	// Test 13.3: Response format is still valid for errors
+	sock_fd = createClientSocket("127.0.0.1", 9013);
+	if (sock_fd >= 0)
+	{
+		std::string request = "BADMETHOD / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("Content-Length:") != std::string::npos, 
+			"Error response contains Content-Length header");
+		ASSERT_TRUE(response.find("\r\n\r\n") != std::string::npos, 
+			"Error response has proper header/body separator");
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+// ==========================================
+// TEST 14: HttpResponse with Different HTTP Versions
+// ==========================================
+
+void	testHttpResponseVersionAdaptation()
+{
+	std::cout << "\n=== Test 14: HttpResponse Version Adaptation ===" << std::endl;
+
+	pid_t	pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "9014");
+		exit(0);
+	}
+
+	sleep(1);
+
+	int	sock_fd = -1;
+
+	// Test 14.1: HTTP/1.0 request gets HTTP/1.0 response
+	sock_fd = createClientSocket("127.0.0.1", 9014);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.0\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.0") != std::string::npos, 
+			"HTTP/1.0 request receives HTTP/1.0 response");
+		
+		close(sock_fd);
+	}
+
+	// Test 14.2: HTTP/1.1 request gets HTTP/1.1 response
+	sock_fd = createClientSocket("127.0.0.1", 9014);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1") != std::string::npos, 
+			"HTTP/1.1 request receives HTTP/1.1 response");
+		
+		close(sock_fd);
+	}
+
+	// Test 14.3: Sequential requests with different versions
+	sock_fd = createClientSocket("127.0.0.1", 9014);
+	if (sock_fd >= 0)
+	{
+		// First HTTP/1.1 request
+		std::string request1 = "GET / HTTP/1.1\r\n"
+		                       "Host: localhost\r\n"
+		                       "Connection: keep-alive\r\n"
+		                       "\r\n";
+		std::string response1 = sendAndReceive(sock_fd, request1);
+		
+		ASSERT_TRUE(response1.find("HTTP/1.1") != std::string::npos, 
+			"First request gets HTTP/1.1 response");
+		
+		// Second HTTP/1.1 request on same connection
+		std::string request2 = "GET /test HTTP/1.1\r\n"
+		                       "Host: localhost\r\n"
+		                       "Connection: keep-alive\r\n"
+		                       "\r\n";
+		std::string response2 = sendAndReceive(sock_fd, request2);
+		
+		ASSERT_TRUE(response2.find("HTTP/1.1") != std::string::npos, 
+			"Second request on keep-alive connection gets HTTP/1.1 response");
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+// ==========================================
+// TEST 15: HttpResponse Content-Type Header
+// ==========================================
+
+void	testHttpResponseContentType()
+{
+	std::cout << "\n=== Test 15: HttpResponse Content-Type Header ===" << std::endl;
+
+	pid_t	pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "9015");
+		exit(0);
+	}
+
+	sleep(1);
+
+	int	sock_fd = -1;
+
+	// Test 15.1: Response has Content-Type header
+	sock_fd = createClientSocket("127.0.0.1", 9015);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("Content-Type:") != std::string::npos, 
+			"Response contains Content-Type header");
+		
+		close(sock_fd);
+	}
+
+	// Test 15.2: Response body is properly formatted
+	sock_fd = createClientSocket("127.0.0.1", 9015);
+	if (sock_fd >= 0)
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		size_t body_pos = response.find("\r\n\r\n");
+		ASSERT_TRUE(body_pos != std::string::npos, 
+			"Response has header/body separator");
+		
+		if (body_pos != std::string::npos)
+		{
+			std::string body = response.substr(body_pos + 4);
+			ASSERT_TRUE(body.length() > 0, 
+				"Response has non-empty body");
+		}
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+// ==========================================
 // MAIN
 // ==========================================
 
@@ -781,6 +1081,10 @@ int	main()
 	testConnectionCloseBehavior();
 	testConnectionKeepAliveBehavior();
 	testCookieIntegration();
+	testHttpResponseFormat();
+	testHttpResponseErrorCodes();
+	testHttpResponseVersionAdaptation();
+	testHttpResponseContentType();
 
 	std::cout << "\n=============================================" << std::endl;
 	return printTestSummary();
