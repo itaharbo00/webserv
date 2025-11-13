@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 23:09:44 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 01:06:25 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ Server::Server(const std::string &host, const std::string &port)
 		if (port_num < 1 || port_num > 65535)
 			throw std::runtime_error("Invalid port number (must be 1-65535)");
 		
-		p_initSocket(); // Initialisation du socket lors de la construction du serveur
+		initSocket(); // Initialisation du socket lors de la construction du serveur
 	}
 	catch (const std::exception &e)
 	{
@@ -46,7 +46,7 @@ Server::~Server()
 		freeaddrinfo(p_addrinfo);
 }
 
-void	Server::p_initSocket()	// Creation, bind et listen du socket
+void	Server::initSocket()	// Creation, bind et listen du socket
 {
 	struct addrinfo	hints;
 	std::memset(&hints, 0, sizeof(hints));
@@ -77,7 +77,7 @@ void	Server::p_initSocket()	// Creation, bind et listen du socket
 		throw std::runtime_error("listen() failed");
 }
 
-void	Server::p_setNonBlocking(int fd)	// Mettre un descripteur en mode non-bloquant
+void	Server::setNonBlocking(int fd)	// Mettre un descripteur en mode non-bloquant
 {
 	int	saved_errno;
 
@@ -98,8 +98,9 @@ void	Server::p_setNonBlocking(int fd)	// Mettre un descripteur en mode non-bloqu
 	}
 }
 
-void	Server::p_initServerPollfd()	// Initialiser le pollfd du serveur
+void	Server::initServerPollfd()	// Initialiser le pollfd du serveur
 {
+	// Ajouter le socket du serveur à la liste des fds surveillés
 	struct pollfd	server_pollfd;
 	server_pollfd.fd = p_socket_fd;
 	server_pollfd.events = POLLIN; // Surveiller les événements de lecture
@@ -107,7 +108,7 @@ void	Server::p_initServerPollfd()	// Initialiser le pollfd du serveur
 	p_fds.push_back(server_pollfd); // Ajouter le serveur à la liste des fds surveillés
 }
 
-void	Server::p_acceptNewClient()	// Accepter une nouvelle connexion client
+void	Server::acceptNewClient()	// Accepter une nouvelle connexion client
 {
 	int	client_fd = accept(p_socket_fd, NULL, NULL);
 	if (client_fd < 0)
@@ -119,8 +120,9 @@ void	Server::p_acceptNewClient()	// Accepter une nouvelle connexion client
 		throw std::runtime_error("accept() failed");
 	}
 
-	p_setNonBlocking(client_fd); // Mettre le descripteur en mode non-bloquant
+	setNonBlocking(client_fd); // Mettre le descripteur en mode non-bloquant
 
+	// Ajouter le client à la liste des fds surveillés
 	struct pollfd	client_pollfd;
 	client_pollfd.fd = client_fd;
 	client_pollfd.events = POLLIN; // Surveiller les événements de lecture
@@ -128,8 +130,9 @@ void	Server::p_acceptNewClient()	// Accepter une nouvelle connexion client
 	p_fds.push_back(client_pollfd); // Ajouter le client à la liste des fds surveillés
 }
 
-bool	Server::p_handleClient(size_t index)	// Gérer la communication avec un client
+bool	Server::handleClient(size_t index)	// Gérer la communication avec un client
 {
+	// Obtenir le descripteur du client
 	int		client_fd = p_fds[index].fd;
 	char	buffer[4096]; // Buffer pour recevoir les données
 
@@ -141,30 +144,26 @@ bool	Server::p_handleClient(size_t index)	// Gérer la communication avec un cli
 
 		try
 		{
+			// Obtenir une référence à l'objet HttpRequest du client
+			HttpRequest	&request = p_clients_request[client_fd];
+
 			// Ajouter les données reçues à l'objet HttpRequest du client
-			p_clients_request[client_fd].appendData(std::string(buffer, bytes_received));
+			request.appendData(std::string(buffer, bytes_received));
+
 			// Tenter de parser la requête
 			if (p_clients_request[client_fd].isComplete())
 			{
-				HttpRequest	&request = p_clients_request[client_fd];
+				// Parser la requête complète
 				request.parse();
 
-				HttpResponse	response;
+				// Router la requête pour obtenir une réponse
+				HttpResponse	response = p_router.route(request);
 
-				response.setHttpVersion(request.getHttpVersion());
-				response.setStatusCode(200);
-				response.setHeader("Content-Type", "text/plain");
-				response.setBody("Hello, World!");
-				if (request.shouldCloseConnection())
-				{
-					response.setHeader("Connection", "close");
-				}
-				else
-					response.setHeader("Connection", "keep-alive");
-
-				std::string	response_str = response.toString();
+				// Envoyer la réponse au client
+				std::string		response_str = response.toString();
 				send(client_fd, response_str.c_str(), response_str.length(), 0);
 
+				// Gérer la fermeture de la connexion si nécessaire
 				if (request.shouldCloseConnection())
 				{
 					close(client_fd);
@@ -182,8 +181,10 @@ bool	Server::p_handleClient(size_t index)	// Gérer la communication avec un cli
 
 			// Essayer d'obtenir la version HTTP de la requête, sinon HTTP/1.1 par défaut
 			std::string version = "HTTP/1.1";
+
 			try
 			{
+				// Tenter d'obtenir la version HTTP de la requête
 				version = p_clients_request[client_fd].getHttpVersion();
 				if (version.empty())
 					version = "HTTP/1.1";
@@ -191,6 +192,7 @@ bool	Server::p_handleClient(size_t index)	// Gérer la communication avec un cli
 			catch (...)
 			{
 			}
+
 			errorResponse.setHttpVersion(version);
 			errorResponse.setStatusCode(400); // Bad Request
 			errorResponse.setHeader("Content-Type", "text/plain");
@@ -239,8 +241,8 @@ void	Server::start()	// Méthode pour démarrer le serveur
 	signal(SIGINT, handleSignal);	// Gérer l'interruption clavier (Ctrl+C)
 	signal(SIGTERM, handleSignal);	// Gérer le signal de terminaison
 
-	p_setNonBlocking(p_socket_fd); // Mettre le socket du serveur en mode non-bloquant
-	p_initServerPollfd();          // Initialiser le pollfd du serveur
+	setNonBlocking(p_socket_fd); // Mettre le socket du serveur en mode non-bloquant
+	initServerPollfd();          // Initialiser le pollfd du serveur
 
 	g_isRunning = true;
 	
@@ -266,7 +268,7 @@ void	Server::start()	// Méthode pour démarrer le serveur
 					{
 						try
 						{
-							p_acceptNewClient();	// Nouvelle connexion entrante
+							acceptNewClient();	// Nouvelle connexion entrante
 						}
 						catch (const std::exception&)
 						{
@@ -276,7 +278,7 @@ void	Server::start()	// Méthode pour démarrer le serveur
 					{
 						try
 						{
-							if (!p_handleClient(i)) // Données dispo à lire d'un client existant
+							if (!handleClient(i)) // Données dispo à lire d'un client existant
 								--i;	// Ajuster l'index si un client a été supprimé
 						}
 						catch (const std::exception&)

@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 23:00:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 23:09:44 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 01:46:24 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,34 +111,34 @@ void	testGETRequestParsing()
 		
 		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
 			"GET request returns 200 OK");
-		ASSERT_TRUE(response.find("Hello, World!") != std::string::npos, 
-			"GET request returns correct body");
+		ASSERT_TRUE(response.find("Welcome") != std::string::npos, 
+			"GET request returns home page content");
 		
 		close(sock_fd);
 	}
 
-	// Test 1.2: GET with long URI
+	// Test 1.2: GET with unknown URI returns 404
 	sock_fd = createClientSocket("127.0.0.1", 9001);
 	if (sock_fd >= 0)
 	{
 		std::string request = "GET /path/to/resource HTTP/1.1\r\nHost: localhost\r\n\r\n";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
-			"GET with path returns 200 OK");
+		ASSERT_TRUE(response.find("HTTP/1.1 404") != std::string::npos, 
+			"GET with unknown path returns 404");
 		
 		close(sock_fd);
 	}
 
-	// Test 1.3: GET with query parameters
+	// Test 1.3: GET with query parameters on unknown route
 	sock_fd = createClientSocket("127.0.0.1", 9001);
 	if (sock_fd >= 0)
 	{
 		std::string request = "GET /search?q=test&lang=en HTTP/1.1\r\nHost: localhost\r\n\r\n";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
-			"GET with query params returns 200 OK");
+		ASSERT_TRUE(response.find("HTTP/1.1 404") != std::string::npos, 
+			"GET with query params on unknown route returns 404");
 		
 		close(sock_fd);
 	}
@@ -178,8 +178,8 @@ void	testPOSTRequestParsing()
 		                      "Hello World";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
-			"POST with Content-Length returns 200 OK");
+		ASSERT_TRUE(response.find("HTTP/1.1 405") != std::string::npos, 
+			"POST returns 405 Method Not Allowed");
 		
 		close(sock_fd);
 	}
@@ -194,8 +194,8 @@ void	testPOSTRequestParsing()
 		                      "\r\n";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
-			"POST with empty body returns 200 OK");
+		ASSERT_TRUE(response.find("HTTP/1.1 405") != std::string::npos, 
+			"POST with empty body returns 405 Method Not Allowed");
 		
 		close(sock_fd);
 	}
@@ -229,8 +229,8 @@ void	testDELETERequestParsing()
 		std::string request = "DELETE /resource/123 HTTP/1.1\r\nHost: localhost\r\n\r\n";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
-			"DELETE request returns 200 OK");
+		ASSERT_TRUE(response.find("HTTP/1.1 405") != std::string::npos, 
+			"DELETE request returns 405 Method Not Allowed");
 		
 		close(sock_fd);
 	}
@@ -374,12 +374,13 @@ void	testLargeRequests()
 				response = buffer;
 			}
 			
-			// Note: avec la logique actuelle, le serveur ne parse que quand il voit \r\n\r\n
-			// donc une requête avec body peut ne pas être traitée immédiatement
+			// Note: POST is not allowed, should return 405
 			ASSERT_TRUE(response.find("200 OK") != std::string::npos || 
+			            response.find("404") != std::string::npos ||
+			            response.find("405") != std::string::npos ||
 			            response.find("400 Bad Request") != std::string::npos ||
 			            response.empty(),
-				"Max size request handled (200, 400, or timeout acceptable)");
+				"Max size request handled (200, 404, 405, 400, or timeout acceptable)");
 		}
 		else
 		{
@@ -532,8 +533,8 @@ void	testSequentialRequests()
 		// Request 1
 		std::string request1 = "GET /resource1 HTTP/1.1\r\nHost: localhost\r\n\r\n";
 		std::string response1 = sendAndReceive(sock_fd, request1);
-		ASSERT_TRUE(response1.find("HTTP/1.1 200 OK") != std::string::npos, 
-			"First sequential request succeeds");
+		ASSERT_TRUE(response1.find("HTTP/1.1 404") != std::string::npos, 
+			"First sequential request returns 404 for unknown route");
 		
 		close(sock_fd);
 		
@@ -541,8 +542,8 @@ void	testSequentialRequests()
 		sock_fd = createClientSocket("127.0.0.1", 9007);
 		std::string request2 = "GET /resource2 HTTP/1.1\r\nHost: localhost\r\n\r\n";
 		std::string response2 = sendAndReceive(sock_fd, request2);
-		ASSERT_TRUE(response2.find("HTTP/1.1 200 OK") != std::string::npos, 
-			"Second sequential request succeeds");
+		ASSERT_TRUE(response2.find("HTTP/1.1 404") != std::string::npos, 
+			"Second sequential request returns 404 for unknown route");
 		
 		close(sock_fd);
 	}
@@ -695,8 +696,8 @@ void	testConnectionKeepAliveBehavior()
 		                       "\r\n";
 		std::string response1 = sendAndReceive(sock_fd, request1);
 		
-		ASSERT_TRUE(response1.find("HTTP/1.1 200 OK") != std::string::npos, 
-			"First request with keep-alive succeeds");
+		ASSERT_TRUE(response1.find("HTTP/1.1 404") != std::string::npos, 
+			"First request returns 404 for unknown route");
 		
 		// Note: Dans votre implémentation actuelle, le serveur ferme la connexion
 		// après chaque réponse. Pour un vrai keep-alive, il faudrait modifier

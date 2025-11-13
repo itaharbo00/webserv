@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/01 14:12:49 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/10 23:04:34 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 01:46:24 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -142,9 +142,9 @@ void	testBasicConnection()
 		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos,
 			"Response contains HTTP 200 OK");
 
-		// Test 2.4: Vérification du contenu
-		ASSERT_TRUE(response.find("Hello, World!") != std::string::npos,
-			"Response contains expected body");
+		// Test 2.4: Vérification du contenu (home page from Router)
+		ASSERT_TRUE(response.find("Welcome") != std::string::npos,
+			"Response contains expected home page content");
 
 		close(sock_fd);
 	}
@@ -357,7 +357,10 @@ void	testConcurrentRequests()
 			char buffer[1024];
 			std::memset(buffer, 0, sizeof(buffer));
 			ssize_t bytes = recv(clients[i], buffer, sizeof(buffer) - 1, 0);
-			if (bytes <= 0 || std::string(buffer).find("HTTP/1.1 200 OK") == std::string::npos)
+			// Accept 200 or 404 (unknown routes)
+			if (bytes <= 0 || 
+			    (std::string(buffer).find("HTTP/1.1 200 OK") == std::string::npos &&
+			     std::string(buffer).find("HTTP/1.1 404") == std::string::npos))
 				all_ok = false;
 			close(clients[i]);
 		}

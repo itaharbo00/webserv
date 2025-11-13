@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 20:34:27 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 18:55:00 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 01:10:51 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,7 +111,6 @@ void	HttpRequest::parseBody(std::istringstream &stream)
 // Limitations actuelles :
 //   - Pas de validation stricte des caractères (permissif)
 //   - Les cookies malformés (sans '=') sont ignorés silencieusement
-
 void	HttpRequest::parseCookies(const std::string &cookieHeader)
 {
 	std::stringstream	ss(cookieHeader);

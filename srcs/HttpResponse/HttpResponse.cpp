@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 21:38:40 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 23:09:44 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 01:46:24 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,6 +66,14 @@ int	HttpResponse::getStatusCode() const
 std::string	HttpResponse::getBody() const
 {
 	return p_body;
+}
+
+std::string	HttpResponse::getHeader(const std::string &key) const
+{
+	std::map<std::string, std::string>::const_iterator it = p_headers.find(key);
+	if (it != p_headers.end())
+		return it->second;
+	return "";
 }
 
 std::string	HttpResponse::toString() const

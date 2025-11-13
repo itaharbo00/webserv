@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 21:35:44 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 22:25:41 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 01:46:24 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,7 @@ public:
 	std::string							getHttpVersion() const;
 	int									getStatusCode() const;
 	std::string							getBody() const;
+	std::string							getHeader(const std::string &key) const;
 
 	// Génère la réponse HTTP complète sous forme de chaîne
 	std::string							toString() const;

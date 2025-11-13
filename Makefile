@@ -6,7 +6,7 @@
 #    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/31 20:03:22 by itaharbo          #+#    #+#              #
-#    Updated: 2025/10/31 20:09:05 by itaharbo         ###   ########.fr        #
+#    Updated: 2025/11/12 23:57:55 by itaharbo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,7 +20,7 @@ SRCDIR		= srcs
 OBJDIR		= objs
 
 SRCS		= $(SRCDIR)/main.cpp \
-			  $(SRCDIR)/Server.cpp
+			  $(SRCDIR)/Server/Server.cpp
 
 OBJS		= $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
