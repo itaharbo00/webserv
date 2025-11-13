@@ -6,14 +6,16 @@
 #    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/11/01 14:07:56 by itaharbo          #+#    #+#              #
-#    Updated: 2025/11/13 01:46:24 by itaharbo         ###   ########.fr        #
+#    Updated: 2025/11/13 21:03:19 by itaharbo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC		= c++
 CFLAGS	= -Wall -Wextra -Werror -std=c++98 -I includes
 
-SRCS_SERVER	= srcs/Server/Server.cpp
+SRCS_SERVER	= srcs/Server/Server.cpp \
+			  srcs/Server/Server_timeouts.cpp \
+			  srcs/Server/Server_write.cpp
 SRCS_HTTP	= srcs/HttpRequest/HttpRequest.cpp \
 			  srcs/HttpRequest/HttpRequest_parsing.cpp \
 			  srcs/HttpRequest/HttpRequest_body.cpp \
@@ -22,6 +24,9 @@ SRCS_HTTP	= srcs/HttpRequest/HttpRequest.cpp \
 SRCS_RESPONSE = srcs/HttpResponse/HttpResponse.cpp
 SRCS_ROUTER = srcs/Router/Router.cpp \
 			  srcs/Router/Router_handlers.cpp \
+			  srcs/Router/Router_serveStaticFile.cpp \
+			  srcs/Router/Router_error_responses.cpp \
+			  srcs/Router/Router_files_utils.cpp \
 			  srcs/Router/Router_pages.cpp \
 			  srcs/Router/Router_pages_2xx.cpp \
 			  srcs/Router/Router_pages_3xx.cpp \
@@ -34,15 +39,17 @@ TEST_SERVER			= tests/test_Server.cpp
 TEST_HTTP			= tests/test_HttpRequest.cpp
 TEST_RESPONSE		= tests/test_HttpResponse.cpp
 TEST_ROUTER			= tests/test_Router.cpp
-TEST_INTEGRATION	= tests/test_HttpRequest_Server_integration.cpp
+TEST_INTEGRATION	= tests/test_Server_integration.cpp
+TEST_PARTIAL_SEND	= tests/test_partial_send.cpp
 
 TARGET_SERVER		= runTests_Server
 TARGET_HTTP			= runTests_HttpRequest
 TARGET_RESPONSE		= runTests_HttpResponse
 TARGET_ROUTER		= runTests_Router
 TARGET_INTEGRATION	= runTests_Integration
+TARGET_PARTIAL_SEND	= runTests_PartialSend
 
-all: $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_RESPONSE) $(TARGET_ROUTER) $(TARGET_INTEGRATION)
+all: $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_RESPONSE) $(TARGET_ROUTER) $(TARGET_INTEGRATION) $(TARGET_PARTIAL_SEND)
 
 # Tests unitaires Server uniquement
 $(TARGET_SERVER): $(SRCS_ALL) $(TEST_SERVER)
@@ -64,6 +71,10 @@ $(TARGET_ROUTER): $(SRCS_HTTP) $(SRCS_RESPONSE) $(SRCS_ROUTER) $(TEST_ROUTER)
 $(TARGET_INTEGRATION): $(SRCS_ALL) $(TEST_INTEGRATION)
 	$(CC) $(CFLAGS) -o $(TARGET_INTEGRATION) $(SRCS_ALL) $(TEST_INTEGRATION)
 
+# Test manuel d'envoi partiel
+$(TARGET_PARTIAL_SEND): $(TEST_PARTIAL_SEND)
+	$(CC) $(CFLAGS) -o $(TARGET_PARTIAL_SEND) $(TEST_PARTIAL_SEND)
+
 run_server: $(TARGET_SERVER)
 	./$(TARGET_SERVER)
 
@@ -79,9 +90,12 @@ run_router: $(TARGET_ROUTER)
 run_integration: $(TARGET_INTEGRATION)
 	./$(TARGET_INTEGRATION)
 
+run_partial_send: $(TARGET_PARTIAL_SEND)
+	./$(TARGET_PARTIAL_SEND)
+
 run_all: run_http run_response run_router run_server run_integration
 
 clean:
-	rm -f $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_RESPONSE) $(TARGET_ROUTER) $(TARGET_INTEGRATION)
+	rm -f $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_RESPONSE) $(TARGET_ROUTER) $(TARGET_INTEGRATION) $(TARGET_PARTIAL_SEND)
 
-.PHONY: all run_server run_http run_response run_integration run_all clean
+.PHONY: all run_server run_http run_response run_router run_integration run_partial_send run_all clean

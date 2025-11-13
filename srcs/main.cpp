@@ -6,12 +6,11 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:32 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/10/31 20:09:15 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 18:14:09 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
-#include <cstdlib>
 
 int	main(int ac, char **av)
 {

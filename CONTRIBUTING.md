@@ -1,9 +1,9 @@
 # Guide de Contribution pour le Projet Webserv
 
 Bienvenue dans le projet Webserv !
+
 Ce guide vous fournira les informations nécessaires pour contribuer efficacement.
-Ce guide couvre le workflow Git complet (pull, branch, commit, push, PR), les tests, le style de code,
-et la résolution des conflits pour éviter les problèmes fréquents.
+Ce guide couvre le workflow Git complet (pull, branch, commit, push, PR), les tests, le style de code, et la résolution des conflits pour éviter les problèmes fréquents.
 
 ## Organisation du dépôt
 

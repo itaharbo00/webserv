@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:45 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 01:20:48 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 17:24:25 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,25 +15,47 @@
 
 # include "HttpRequest.hpp"
 # include "HttpResponse.hpp"
+# include <fstream>
+# include <sys/stat.h>	// stat
 
 class Router
 {
 public:
 	Router();
+	Router(const std::string &root); // Avec racine des fichiers
 	~Router();
 
 	// Méthode principale de routing
-	HttpResponse		route(const HttpRequest& request);
+	HttpResponse		route(const HttpRequest &request);
 	
 	// Générer une réponse d'erreur sans requête valide
-	HttpResponse		createErrorResponse(int statusCode, const std::string& httpVersion);
+	HttpResponse		createErrorResponse(int statusCode,
+							const std::string &httpVersion);
 
 private:
+
+	std::string			p_root; // Racine des fichiers à servir
+
 	// Handlers pour les différentes routes
-	HttpResponse		handleHomePage(const HttpRequest& request);
-	HttpResponse		handleAboutPage(const HttpRequest& request);
-	HttpResponse		handleNotFound(const HttpRequest& request);
-	HttpResponse		handleMethodNotAllowed(const HttpRequest& request);
+	HttpResponse		handleHomePage(const HttpRequest &request);
+	HttpResponse		handleAboutPage(const HttpRequest &request);
+	HttpResponse		handleNotFound(const HttpRequest &request);
+	HttpResponse		handleMethodNotAllowed(const HttpRequest &request);
+	HttpResponse		serveStaticFile(const HttpRequest &request);
+
+	// Fonctions utilitaires pour la gestion des fichiers
+	std::string			readFile(const std::string &filePath);
+	bool				fileExists(const std::string &filePath);
+	bool				isRegularFile(const std::string &filePath);
+	bool				isDirectory(const std::string &filePath);
+	bool				isPathSecure(const std::string &uri);
+	bool				isFileTooLarge(const std::string &filePath);
+	std::string			getContentType(const std::string &filePath);
+
+	// Pages de contenu (home, about)
+	bool				getRightPages(int statusCode, std::string &page);
+	std::string			getPage_home() const;
+	std::string			getPage_about() const;
 
 	// Pages HTML - Succès (2xx)
 	std::string			getPage_200() const;
@@ -67,10 +89,6 @@ private:
 	std::string			getPage_503() const;
 	std::string			getPage_504() const;
 	std::string			getPage_505() const;
-
-	// Pages de contenu (home, about)
-	std::string			getPage_home() const;
-	std::string			getPage_about() const;
 };
 
 #endif	// ROUTER_HPP

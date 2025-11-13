@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   test_HttpRequest_Server_integration.cpp            :+:      :+:    :+:   */
+/*   test_Server_integration.cpp                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 23:00:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 01:46:24 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 20:33:39 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -290,8 +290,8 @@ void	testInvalidRequests()
 		std::string request = "GET /" + long_uri + " HTTP/1.1\r\nHost: localhost\r\n\r\n";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("400 Bad Request") != std::string::npos, 
-			"URI too long returns 400 Bad Request");
+		ASSERT_TRUE(response.find("414") != std::string::npos, 
+			"URI too long returns 414 URI Too Long");
 		
 		close(sock_fd);
 	}
@@ -303,8 +303,8 @@ void	testInvalidRequests()
 		std::string request = "GET /../../../etc/passwd HTTP/1.1\r\nHost: localhost\r\n\r\n";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("400 Bad Request") != std::string::npos, 
-			"Directory traversal returns 400 Bad Request");
+		ASSERT_TRUE(response.find("403") != std::string::npos, 
+			"Directory traversal returns 403 Forbidden");
 		
 		close(sock_fd);
 	}
@@ -1061,6 +1061,321 @@ void	testHttpResponseContentType()
 	waitpid(pid, NULL, 0);
 }
 
+// ============================================================================
+// Test Suite 15: Static File Serving - Index
+// ============================================================================
+
+void	testStaticFileServing_Index()
+{
+	std::cout << "\n--- Test 15: Static File Serving - Index ---" << std::endl;
+
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8090");
+		exit(0);
+	}
+
+	usleep(100000);
+
+	int sock_fd = createClientSocket("127.0.0.1", 8090);
+	ASSERT_TRUE(sock_fd >= 0, "Client socket creation");
+
+	{
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		// Test 15.1: Response contains 200 OK
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"Index request returns 200 OK");
+		
+		// Test 15.2: Response contains Content-Type: text/html
+		ASSERT_TRUE(response.find("Content-Type: text/html") != std::string::npos, 
+			"Index response has text/html Content-Type");
+		
+		// Test 15.3: Response body contains expected content
+		size_t body_pos = response.find("\r\n\r\n");
+		ASSERT_TRUE(body_pos != std::string::npos, 
+			"Response has header/body separator");
+		
+		if (body_pos != std::string::npos)
+		{
+			std::string body = response.substr(body_pos + 4);
+			ASSERT_TRUE(body.find("<!DOCTYPE html>") != std::string::npos, 
+				"Index contains DOCTYPE");
+			ASSERT_TRUE(body.find("Welcome to Webserv") != std::string::npos, 
+				"Index contains welcome message");
+		}
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+// ============================================================================
+// Test Suite 16: Static File Serving - CSS File
+// ============================================================================
+
+void	testStaticFileServing_CSSFile()
+{
+	std::cout << "\n--- Test 16: Static File Serving - CSS File ---" << std::endl;
+
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8091");
+		exit(0);
+	}
+
+	usleep(100000);
+
+	int sock_fd = createClientSocket("127.0.0.1", 8091);
+	ASSERT_TRUE(sock_fd >= 0, "Client socket creation");
+
+	{
+		std::string request = "GET /css/style.css HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		// Test 16.1: Response contains 200 OK
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"CSS request returns 200 OK");
+		
+		// Test 16.2: Response contains Content-Type: text/css
+		ASSERT_TRUE(response.find("Content-Type: text/css") != std::string::npos, 
+			"CSS response has text/css Content-Type");
+		
+		// Test 16.3: Response body contains CSS content
+		size_t body_pos = response.find("\r\n\r\n");
+		ASSERT_TRUE(body_pos != std::string::npos, 
+			"Response has header/body separator");
+		
+		if (body_pos != std::string::npos)
+		{
+			std::string body = response.substr(body_pos + 4);
+			ASSERT_TRUE(body.find("body {") != std::string::npos, 
+				"CSS contains body selector");
+			ASSERT_TRUE(body.find("background:") != std::string::npos, 
+				"CSS contains background property");
+		}
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+// ============================================================================
+// Test Suite 17: Static File Serving - 404 Not Found
+// ============================================================================
+
+void	testStaticFileServing_404()
+{
+	std::cout << "\n--- Test 17: Static File Serving - 404 Not Found ---" << std::endl;
+
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8092");
+		exit(0);
+	}
+
+	usleep(100000);
+
+	int sock_fd = createClientSocket("127.0.0.1", 8092);
+	ASSERT_TRUE(sock_fd >= 0, "Client socket creation");
+
+	{
+		std::string request = "GET /nonexistent.html HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		// Test 17.1: Response contains 404 Not Found
+		ASSERT_TRUE(response.find("HTTP/1.1 404 Not Found") != std::string::npos, 
+			"Nonexistent file returns 404");
+		
+		// Test 17.2: Response contains error message
+		size_t body_pos = response.find("\r\n\r\n");
+		ASSERT_TRUE(body_pos != std::string::npos, 
+			"Response has header/body separator");
+		
+		if (body_pos != std::string::npos)
+		{
+			std::string body = response.substr(body_pos + 4);
+			ASSERT_TRUE(body.find("404") != std::string::npos, 
+				"404 response contains error code");
+			ASSERT_TRUE(body.find("Not Found") != std::string::npos, 
+				"404 response contains error message");
+		}
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+// ============================================================================
+// Test Suite 18: Static File Serving - Path Traversal Security
+// ============================================================================
+
+void	testStaticFileServing_PathTraversal()
+{
+	std::cout << "\n--- Test 18: Static File Serving - Path Traversal Security ---" << std::endl;
+
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8093");
+		exit(0);
+	}
+
+	usleep(100000);
+
+	int sock_fd = createClientSocket("127.0.0.1", 8093);
+	ASSERT_TRUE(sock_fd >= 0, "Client socket creation");
+
+	{
+		// Test 18.1: Block ../ attack - HttpRequest throws exception, Server returns 400
+		std::string request = "GET /../../../etc/passwd HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		// Server catches parse exception and returns 403 Forbidden
+		ASSERT_TRUE(response.find("HTTP/1.1 403") != std::string::npos, 
+			"Path traversal with ../ returns 403 (caught during parsing)");
+		
+		close(sock_fd);
+	}
+
+	// Reconnect for second test
+	sock_fd = createClientSocket("127.0.0.1", 8093);
+	ASSERT_TRUE(sock_fd >= 0, "Client socket creation for second test");
+
+	{
+		// Test 18.2: Block embedded ../ attack - also caught during parsing
+		std::string request = "GET /css/../../../etc/passwd HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 403") != std::string::npos, 
+			"Embedded path traversal returns 403 (caught during parsing)");
+		
+		close(sock_fd);
+	}
+
+	// Reconnect for third test
+	sock_fd = createClientSocket("127.0.0.1", 8093);
+	ASSERT_TRUE(sock_fd >= 0, "Client socket creation for third test");
+
+	{
+		// Test 18.3: Block ~ home directory - this passes parsing, caught by Router
+		std::string request = "GET /~user/file.html HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 403 Forbidden") != std::string::npos, 
+			"Home directory traversal returns 403");
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
+// ============================================================================
+// Test Suite 19: Static File Serving - Multiple Files
+// ============================================================================
+
+void	testStaticFileServing_MultipleFiles()
+{
+	std::cout << "\n--- Test 19: Static File Serving - Multiple Files ---" << std::endl;
+
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8094");
+		exit(0);
+	}
+
+	usleep(100000);
+
+	int sock_fd = createClientSocket("127.0.0.1", 8094);
+	ASSERT_TRUE(sock_fd >= 0, "Client socket creation");
+
+	{
+		// Test 19.1: Request index.html
+		std::string request = "GET / HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "Connection: keep-alive\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"First request (index) returns 200 OK");
+		ASSERT_TRUE(response.find("Welcome to Webserv") != std::string::npos, 
+			"First request contains index content");
+	}
+
+	{
+		// Test 19.2: Request about.html on same connection
+		std::string request = "GET /about.html HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "Connection: keep-alive\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"Second request (about) returns 200 OK");
+		ASSERT_TRUE(response.find("About Webserv") != std::string::npos, 
+			"Second request contains about content");
+	}
+
+	{
+		// Test 19.3: Request test.html on same connection
+		std::string request = "GET /test.html HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "Connection: keep-alive\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"Third request (test) returns 200 OK");
+		ASSERT_TRUE(response.find("Test Page") != std::string::npos, 
+			"Third request contains test content");
+	}
+
+	{
+		// Test 19.4: Request CSS file on same connection
+		std::string request = "GET /css/style.css HTTP/1.1\r\n"
+		                      "Host: localhost\r\n"
+		                      "Connection: close\r\n"
+		                      "\r\n";
+		std::string response = sendAndReceive(sock_fd, request);
+		
+		ASSERT_TRUE(response.find("HTTP/1.1 200 OK") != std::string::npos, 
+			"Fourth request (CSS) returns 200 OK");
+		ASSERT_TRUE(response.find("Content-Type: text/css") != std::string::npos, 
+			"Fourth request has correct Content-Type");
+		
+		close(sock_fd);
+	}
+
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+}
+
 // ==========================================
 // MAIN
 // ==========================================
@@ -1086,6 +1401,13 @@ int	main()
 	testHttpResponseErrorCodes();
 	testHttpResponseVersionAdaptation();
 	testHttpResponseContentType();
+
+	// Static File Serving Integration Tests
+	testStaticFileServing_Index();
+	testStaticFileServing_CSSFile();
+	testStaticFileServing_404();
+	testStaticFileServing_PathTraversal();
+	testStaticFileServing_MultipleFiles();
 
 	std::cout << "\n=============================================" << std::endl;
 	return printTestSummary();

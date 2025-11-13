@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 21:35:44 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 01:46:24 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 18:20:36 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,10 +26,10 @@ public:
 	~HttpResponse();
 
 	// Setters
-	void								setStatusCode(int code);
-	void								setHttpVersion(const std::string &version);
-	void								setHeader(const std::string &key, const std::string &value);
-	void								setBody(const std::string &body);
+	void		setStatusCode(int code);
+	void		setHttpVersion(const std::string &version);
+	void		setHeader(const std::string &key, const std::string &value);
+	void		setBody(const std::string &body);
 
 	// Getters
 	std::string							getHttpVersion() const;

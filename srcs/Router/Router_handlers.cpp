@@ -6,13 +6,13 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 00:56:10 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 01:20:48 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 16:14:52 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Router.hpp"
 
-HttpResponse	Router::handleHomePage(const HttpRequest& request)
+HttpResponse	Router::handleHomePage(const HttpRequest &request)
 {
 	HttpResponse	response;
 
@@ -29,7 +29,7 @@ HttpResponse	Router::handleHomePage(const HttpRequest& request)
 	return response;
 }
 
-HttpResponse	Router::handleAboutPage(const HttpRequest& request)
+HttpResponse	Router::handleAboutPage(const HttpRequest &request)
 {
 	HttpResponse	response;
 
@@ -46,7 +46,7 @@ HttpResponse	Router::handleAboutPage(const HttpRequest& request)
 	return response;
 }
 
-HttpResponse	Router::handleNotFound(const HttpRequest& request)
+HttpResponse	Router::handleNotFound(const HttpRequest &request)
 {
 	HttpResponse	response;
 
@@ -63,7 +63,7 @@ HttpResponse	Router::handleNotFound(const HttpRequest& request)
 	return response;
 }
 
-HttpResponse	Router::handleMethodNotAllowed(const HttpRequest& request)
+HttpResponse	Router::handleMethodNotAllowed(const HttpRequest &request)
 {
 	HttpResponse	response;
 

@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 00:00:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 01:46:24 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 16:55:26 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -348,6 +348,235 @@ void	testClientRequestsConnectionClose()
 }
 
 // ============================================================================
+// Test Suite 17: Static File Serving - Index
+// ============================================================================
+
+void	testServeStaticFile_Index()
+{
+	std::cout << "\n=== Test Suite 17: Static File Serving - Index ===" << std::endl;
+
+	Router router;
+	HttpRequest request;
+	std::string requestStr = "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	request.appendData(requestStr);
+	request.parse();
+
+	HttpResponse response = router.route(request);
+
+	// Test 17.1: Status is 200 OK
+	ASSERT_EQUAL(200, response.getStatusCode(), "Index returns 200 OK");
+
+	// Test 17.2: Content-Type is text/html
+	std::string contentType = response.getHeader("Content-Type");
+	ASSERT_EQUAL("text/html", contentType, "Index has text/html Content-Type");
+
+	// Test 17.3: Body contains expected content
+	std::string body = response.getBody();
+	ASSERT_TRUE(body.find("<!DOCTYPE html>") != std::string::npos, "Index contains DOCTYPE");
+	ASSERT_TRUE(body.find("<title>Webserv - Home</title>") != std::string::npos, "Index contains title");
+	ASSERT_TRUE(body.find("Welcome to Webserv") != std::string::npos, "Index contains welcome message");
+}
+
+// ============================================================================
+// Test Suite 18: Static File Serving - About HTML
+// ============================================================================
+
+void	testServeStaticFile_AboutHtml()
+{
+	std::cout << "\n=== Test Suite 18: Static File Serving - About HTML ===" << std::endl;
+
+	Router router;
+	HttpRequest request;
+	std::string requestStr = "GET /about.html HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	request.appendData(requestStr);
+	request.parse();
+
+	HttpResponse response = router.route(request);
+
+	// Test 18.1: Status is 200 OK
+	ASSERT_EQUAL(200, response.getStatusCode(), "About page returns 200 OK");
+
+	// Test 18.2: Content-Type is text/html
+	std::string contentType = response.getHeader("Content-Type");
+	ASSERT_EQUAL("text/html", contentType, "About page has text/html Content-Type");
+
+	// Test 18.3: Body contains about page content
+	std::string body = response.getBody();
+	ASSERT_TRUE(body.find("About Webserv") != std::string::npos, "About page contains title");
+	ASSERT_TRUE(body.find("RFC 7230") != std::string::npos, "About page mentions RFC 7230");
+}
+
+// ============================================================================
+// Test Suite 19: Static File Serving - CSS File
+// ============================================================================
+
+void	testServeStaticFile_CSS()
+{
+	std::cout << "\n=== Test Suite 19: Static File Serving - CSS File ===" << std::endl;
+
+	Router router;
+	HttpRequest request;
+	std::string requestStr = "GET /css/style.css HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	request.appendData(requestStr);
+	request.parse();
+
+	HttpResponse response = router.route(request);
+
+	// Test 19.1: Status is 200 OK
+	ASSERT_EQUAL(200, response.getStatusCode(), "CSS file returns 200 OK");
+
+	// Test 19.2: Content-Type is text/css
+	std::string contentType = response.getHeader("Content-Type");
+	ASSERT_EQUAL("text/css", contentType, "CSS file has text/css Content-Type");
+
+	// Test 19.3: Body contains CSS content
+	std::string body = response.getBody();
+	ASSERT_TRUE(body.find("body {") != std::string::npos, "CSS contains body selector");
+	ASSERT_TRUE(body.find("background:") != std::string::npos, "CSS contains background property");
+}
+
+// ============================================================================
+// Test Suite 20: Static File Serving - Test HTML
+// ============================================================================
+
+void	testServeStaticFile_TestHtml()
+{
+	std::cout << "\n=== Test Suite 20: Static File Serving - Test HTML ===" << std::endl;
+
+	Router router;
+	HttpRequest request;
+	std::string requestStr = "GET /test.html HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	request.appendData(requestStr);
+	request.parse();
+
+	HttpResponse response = router.route(request);
+
+	// Test 20.1: Status is 200 OK
+	ASSERT_EQUAL(200, response.getStatusCode(), "Test page returns 200 OK");
+
+	// Test 20.2: Content-Type is text/html
+	std::string contentType = response.getHeader("Content-Type");
+	ASSERT_EQUAL("text/html", contentType, "Test page has text/html Content-Type");
+
+	// Test 20.3: Body contains test page content
+	std::string body = response.getBody();
+	ASSERT_TRUE(body.find("Test Page") != std::string::npos, "Test page contains title");
+}
+
+// ============================================================================
+// Test Suite 21: Static File Serving - 404 Not Found
+// ============================================================================
+
+void	testServeStaticFile_NotFound()
+{
+	std::cout << "\n=== Test Suite 21: Static File Serving - 404 Not Found ===" << std::endl;
+
+	Router router;
+	HttpRequest request;
+	std::string requestStr = "GET /nonexistent.html HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	request.appendData(requestStr);
+	request.parse();
+
+	HttpResponse response = router.route(request);
+
+	// Test 21.1: Status is 404 Not Found
+	ASSERT_EQUAL(404, response.getStatusCode(), "Nonexistent file returns 404");
+
+	// Test 21.2: Content-Type is text/html
+	std::string contentType = response.getHeader("Content-Type");
+	ASSERT_EQUAL("text/html", contentType, "404 response has text/html Content-Type");
+
+	// Test 21.3: Body contains 404 error page
+	std::string body = response.getBody();
+	ASSERT_TRUE(body.find("404") != std::string::npos, "404 response contains error code");
+	ASSERT_TRUE(body.find("Not Found") != std::string::npos, "404 response contains error message");
+}
+
+// ============================================================================
+// Test Suite 22: Static File Serving - Path Traversal Security
+// ============================================================================
+
+void	testServeStaticFile_PathTraversal()
+{
+	std::cout << "\n=== Test Suite 22: Static File Serving - Path Traversal Security ===" << std::endl;
+
+	Router router;
+
+	// Test 22.1: Block ../ attack
+	try
+	{
+		HttpRequest request1;
+		std::string requestStr1 = "GET /../../../etc/passwd HTTP/1.1\r\nHost: localhost\r\n\r\n";
+		request1.appendData(requestStr1);
+		request1.parse();
+		ASSERT_TRUE(false, "Path traversal should throw exception during parsing");
+	}
+	catch (const std::runtime_error &e)
+	{
+		ASSERT_TRUE(std::string(e.what()).find("Directory traversal") != std::string::npos,
+			"Path traversal with ../ is blocked during parsing");
+	}
+
+	// Test 22.2: Block embedded ../ attack
+	try
+	{
+		HttpRequest request2;
+		std::string requestStr2 = "GET /css/../../../etc/passwd HTTP/1.1\r\nHost: localhost\r\n\r\n";
+		request2.appendData(requestStr2);
+		request2.parse();
+		ASSERT_TRUE(false, "Embedded path traversal should throw exception during parsing");
+	}
+	catch (const std::runtime_error &e)
+	{
+		ASSERT_TRUE(std::string(e.what()).find("Directory traversal") != std::string::npos,
+			"Embedded path traversal is blocked during parsing");
+	}
+
+	// Test 22.3: Block ~ home directory attack (if URI starts with /~, it passes parsing but fails in serveStaticFile)
+	HttpRequest request3;
+	std::string requestStr3 = "GET /~user/file.html HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	request3.appendData(requestStr3);
+	request3.parse();
+	HttpResponse response3 = router.route(request3);
+	ASSERT_EQUAL(403, response3.getStatusCode(), "Home directory access returns 403");
+}
+
+// ============================================================================
+// Test Suite 23: Static File Serving - Double Slash Security
+// ============================================================================
+
+void	testServeStaticFile_DoubleSlash()
+{
+	std::cout << "\n=== Test Suite 23: Static File Serving - Double Slash Security ===" << std::endl;
+
+	Router router;
+
+	// Test 23.1: Block double slash attack
+	HttpRequest request1;
+	std::string requestStr1 = "GET //index.html HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	request1.appendData(requestStr1);
+	request1.parse();
+	HttpResponse response1 = router.route(request1);
+	ASSERT_EQUAL(403, response1.getStatusCode(), "Double slash returns 403");
+
+	// Test 23.2: Block triple slash attack
+	HttpRequest request2;
+	std::string requestStr2 = "GET ///etc/passwd HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	request2.appendData(requestStr2);
+	request2.parse();
+	HttpResponse response2 = router.route(request2);
+	ASSERT_EQUAL(403, response2.getStatusCode(), "Triple slash returns 403");
+
+	// Test 23.3: Block embedded double slash
+	HttpRequest request3;
+	std::string requestStr3 = "GET /css//style.css HTTP/1.1\r\nHost: localhost\r\n\r\n";
+	request3.appendData(requestStr3);
+	request3.parse();
+	HttpResponse response3 = router.route(request3);
+	ASSERT_EQUAL(403, response3.getStatusCode(), "Embedded double slash returns 403");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -382,6 +611,15 @@ int	main()
 
 	// Client Control
 	testClientRequestsConnectionClose();
+
+	// Static File Serving
+	testServeStaticFile_Index();
+	testServeStaticFile_AboutHtml();
+	testServeStaticFile_CSS();
+	testServeStaticFile_TestHtml();
+	testServeStaticFile_NotFound();
+	testServeStaticFile_PathTraversal();
+	testServeStaticFile_DoubleSlash();
 
 	printTestSummary();
 	return 0;

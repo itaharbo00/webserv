@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 01:06:25 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 20:57:00 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,8 @@ Server::~Server()
 	if (p_socket_fd >= 0)	// Verifier que le socket est valide avant de le fermer
 		close(p_socket_fd);
 
-	if (p_addrinfo)	// Verifier que p_addrinfo n'est pas NULL avant d'appeler freeaddrinfo
+	// Verifier que p_addrinfo n'est pas NULL avant d'appeler freeaddrinfo
+	if (p_addrinfo)
 		freeaddrinfo(p_addrinfo);
 }
 
@@ -128,6 +129,12 @@ void	Server::acceptNewClient()	// Accepter une nouvelle connexion client
 	client_pollfd.events = POLLIN; // Surveiller les événements de lecture
 	client_pollfd.revents = 0;
 	p_fds.push_back(client_pollfd); // Ajouter le client à la liste des fds surveillés
+
+	// Enregistrer le temps de la dernière activité du client
+	p_clients_last_activity[client_fd] = std::time(NULL);
+	
+	// Log de la nouvelle connexion
+	std::cout << "[" << client_fd << "] New client connected" << std::endl;
 }
 
 bool	Server::handleClient(size_t index)	// Gérer la communication avec un client
@@ -142,6 +149,8 @@ bool	Server::handleClient(size_t index)	// Gérer la communication avec un clien
 	{
 		buffer[bytes_received] = '\0';
 
+		// Mettre à jour le temps de la dernière activité du client
+		p_clients_last_activity[client_fd] = std::time(NULL);
 		try
 		{
 			// Obtenir une référence à l'objet HttpRequest du client
@@ -161,14 +170,43 @@ bool	Server::handleClient(size_t index)	// Gérer la communication avec un clien
 
 				// Envoyer la réponse au client
 				std::string		response_str = response.toString();
-				send(client_fd, response_str.c_str(), response_str.length(), 0);
+				ssize_t			sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
+				
+				if (sent < 0)
+				{
+					if (errno == EWOULDBLOCK || errno == EAGAIN)
+					{
+						// Socket pas prêt, mettre en buffer et attendre POLLOUT
+						p_pending_responses[client_fd] = response_str;
+						p_bytes_sent[client_fd] = 0;
+						p_fds[index].events = POLLOUT;
+						return true;
+					}
+					else
+					{
+						// Erreur fatale
+						std::cerr << "[" << client_fd << "] Failed to send response: " 
+								  << std::strerror(errno) << std::endl;
+						closeClient(index);
+						return false;
+					}
+				}
+				else if (sent < static_cast<ssize_t>(response_str.length()))
+				{
+					// Envoi partiel : mettre le reste en buffer et attendre POLLOUT
+					std::cerr << "[" << client_fd << "] Partial send: " 
+							  << sent << "/" << response_str.length() << " bytes (buffering remainder)" << std::endl;
+					p_pending_responses[client_fd] = response_str.substr(sent);
+					p_bytes_sent[client_fd] = sent;
+					p_fds[index].events = POLLOUT;
+					return true;
+				}
 
+				// Envoi complet ✅
 				// Gérer la fermeture de la connexion si nécessaire
 				if (request.shouldCloseConnection())
 				{
-					close(client_fd);
-					p_fds.erase(p_fds.begin() + index);
-					p_clients_request.erase(client_fd);
+					closeClient(index);
 					return (false);
 				}
 				else	// Supprimer la requête après traitement pour la prochaine
@@ -177,10 +215,10 @@ bool	Server::handleClient(size_t index)	// Gérer la communication avec un clien
 		}
 		catch (const std::exception &e)
 		{
-			HttpResponse	errorResponse;
-
 			// Essayer d'obtenir la version HTTP de la requête, sinon HTTP/1.1 par défaut
 			std::string version = "HTTP/1.1";
+			std::string	errorMsg = e.what();
+			int			statusCode = 400; // Code d'erreur par défaut
 
 			try
 			{
@@ -193,18 +231,41 @@ bool	Server::handleClient(size_t index)	// Gérer la communication avec un clien
 			{
 			}
 
-			errorResponse.setHttpVersion(version);
-			errorResponse.setStatusCode(400); // Bad Request
-			errorResponse.setHeader("Content-Type", "text/plain");
-			errorResponse.setBody("Bad Request");
-			errorResponse.setHeader("Connection", "close");
-			std::string	error_response_str = errorResponse.toString();
-			send(client_fd, error_response_str.c_str(),
-				error_response_str.length(), 0);
+			if (errorMsg.find("URI too long") != std::string::npos)
+				statusCode = 414;
+			else if (errorMsg.find("Header line too long") != std::string::npos ||
+			         errorMsg.find("Request header fields too large") != std::string::npos)
+				statusCode = 431;
+			else if (errorMsg.find("Content-Length exceeds limit") != std::string::npos ||
+			         errorMsg.find("Request entity too large") != std::string::npos ||
+			         errorMsg.find("Payload too large") != std::string::npos ||
+			         errorMsg.find("Request size limit exceeded") != std::string::npos)
+				statusCode = 413;
+			else if (errorMsg.find("Unsupported HTTP version") != std::string::npos ||
+			         errorMsg.find("HTTP version not supported") != std::string::npos)
+				statusCode = 505;
+			else if (errorMsg.find("Directory traversal") != std::string::npos)
+				statusCode = 403;
+			else
+				statusCode = 400;
 
-			p_clients_request.erase(client_fd); // Supprimer la requête erronée
-			close(client_fd);
-			p_fds.erase(p_fds.begin() + index);
+			// Log l'erreur avec le code HTTP
+			std::cerr << "[" << client_fd << "] HTTP parsing error: " 
+					  << statusCode << " - " << errorMsg << std::endl;
+
+			HttpResponse errorResponse = p_router.createErrorResponse(statusCode, version);
+
+			std::string	error_response_str = errorResponse.toString();
+			ssize_t sent = send(client_fd, error_response_str.c_str(), 
+								error_response_str.length(), 0);
+			
+			if (sent < 0)
+			{
+				std::cerr << "[" << client_fd << "] Failed to send error response: " 
+						  << std::strerror(errno) << std::endl;
+			}
+
+			closeClient(index);
 			return false;	// Client déconnecté
 		}
 		return true;	// Client toujours connecté
@@ -212,9 +273,8 @@ bool	Server::handleClient(size_t index)	// Gérer la communication avec un clien
 	else if (bytes_received == 0)
 	{
 		// Client a fermé la connexion (normal)
-		close(client_fd);
-		p_fds.erase(p_fds.begin() + index);
-		p_clients_request.erase(client_fd);
+		std::cout << "[" << client_fd << "] Client disconnected" << std::endl;
+		closeClient(index);
 		return false;
 	}
 	else
@@ -224,11 +284,13 @@ bool	Server::handleClient(size_t index)	// Gérer la communication avec un clien
 			return true;	// Pas de données disponibles
 
 		// Erreur grave
-		throw std::runtime_error("recv() failed");
+		std::cerr << "[" << client_fd << "] recv() failed: " 
+				  << std::strerror(errno) << std::endl;
+		throw std::runtime_error("recv() failed: " + std::string(std::strerror(errno)));
 	}
 }
 
-static bool	g_isRunning = false;	// Variable globale pour contrôler l'exécution du serveur
+static bool	g_isRunning = false; // Variable globale pour contrôler l'exécution du serveur
 
 static void	handleSignal(int signum)	// Gérer les signaux (ex: SIGINT)
 {
@@ -244,6 +306,10 @@ void	Server::start()	// Méthode pour démarrer le serveur
 	setNonBlocking(p_socket_fd); // Mettre le socket du serveur en mode non-bloquant
 	initServerPollfd();          // Initialiser le pollfd du serveur
 
+	// Log du démarrage du serveur
+	std::cout << "Server listening on " << p_host << ":" << p_port << std::endl;
+	std::cout << "Waiting for connections..." << std::endl;
+
 	g_isRunning = true;
 	
 	// Boucle principale pour accepter les connexions entrantes
@@ -251,13 +317,15 @@ void	Server::start()	// Méthode pour démarrer le serveur
 	{
 		try
 		{
-			int	poll_count = poll(&p_fds[0], p_fds.size(), -1);	// Attente indéfinie
+			int	poll_count = poll(&p_fds[0], p_fds.size(), 1000);	// Attente indéfinie
 			if (poll_count < 0)
 			{
 				if (errno == EINTR)	// Vérifier si poll a été interrompu par un signal
 					continue;		// Recommencer la boucle si interrompu
 				throw std::runtime_error("poll() failed");
 			}
+
+			checkTimeouts(); // Vérifier les timeouts des clients
 
 			// Parcourir les descripteurs pour vérifier lesquels ont des événements
 			for (size_t i = 0; i < p_fds.size(); ++i)
@@ -285,10 +353,25 @@ void	Server::start()	// Méthode pour démarrer le serveur
 						{
 							if (i > 0)
 							{
-								close(p_fds[i].fd);
-								p_fds.erase(p_fds.begin() + i);
+								closeClient(i);  // Utiliser closeClient() pour tout nettoyer
 								--i;
 							}
+						}
+					}
+				}
+				else if (p_fds[i].revents & POLLOUT)	// Socket prêt pour écriture
+				{
+					try
+					{
+						if (!handleClientWrite(i))	// Envoyer les données en attente
+							--i;	// Ajuster l'index si un client a été supprimé
+					}
+					catch (const std::exception&)
+					{
+						if (i > 0)
+						{
+							closeClient(i);
+							--i;
 						}
 					}
 				}
@@ -300,4 +383,7 @@ void	Server::start()	// Méthode pour démarrer le serveur
 			break;  // Sortir de la boucle proprement
 		}
 	}
+	
+	// Log de l'arrêt du serveur
+	std::cout << "\nServer shutting down gracefully..." << std::endl;
 }

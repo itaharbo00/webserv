@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpRequest_utils.cpp                              :+:      :+:    :+:   */
+/*   HttpRequest_checkers.cpp                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 17:56:43 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 18:52:06 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 18:45:12 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -108,7 +108,7 @@ void	HttpRequest::handleDuplicateHeaders(const std::string &key, const std::stri
 		p_headers[key] = value;
 		return;
 	}
-	
+
 	// Gestion spéciale de Cookie : concaténation avec "; " et parsing immédiat
 	if (key == "Cookie")
 	{
@@ -120,7 +120,7 @@ void	HttpRequest::handleDuplicateHeaders(const std::string &key, const std::stri
 		// (évite le reparsing répétitif lorsque plusieurs en-têtes Cookie arrivent).
 		return;
 	}
-	
+
 	// Pour les headers critiques, rejeter les duplicatas
 	if (key == "Content-Length" || key == "Host" || key == "Transfer-Encoding"
 		|| key == "Content-Type")
