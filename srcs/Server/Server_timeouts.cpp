@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 17:47:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 20:57:00 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 21:20:58 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,10 @@ void	Server::checkTimeouts()
 			std::string		response_str = timeoutResponse.toString();
 
 			// Envoyer la réponse au client
-			send(client_fd, response_str.c_str(), response_str.length(), 0);
+			if (send(client_fd, response_str.c_str(), response_str.length(), 0) < 0)
+			{
+				std::cerr << "Error sending timeout response to client [" << client_fd << "]" << std::endl;
+			}
 			// Fermer la connexion du client
 			closeClient(i);
 		}

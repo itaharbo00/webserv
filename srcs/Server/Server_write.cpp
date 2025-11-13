@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 19:30:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 20:57:00 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/13 21:09:45 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ bool	Server::handleClientWrite(size_t index)
 	}
 	else
 	{
-		// Envoi complet réussi ! ✅
+		// Envoi complet réussi !
 		size_t	total_sent = p_bytes_sent[client_fd] + sent;
 		std::cout << "[" << client_fd << "] Complete send after partial: "
 				  << total_sent << " bytes total" << std::endl;

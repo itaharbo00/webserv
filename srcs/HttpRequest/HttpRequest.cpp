@@ -64,54 +64,6 @@ void	HttpRequest::parse()
 }
 
 // Ajoute des données brutes à la requête
-/*void	HttpRequest::appendData(const std::string &data)
-{
-	// Vérifier la taille totale de la requête
-	if (p_rawRequest.size() + data.size() > MAX_REQUEST_SIZE)
-		throw std::runtime_error("Request size limit exceeded");
-
-	// Ajouter les données reçues au buffer brut
-	p_rawRequest += data;
-
-	// Vérifier si les headers sont complets pour déterminer la taille attendue du corps
-	if (!p_isComplete && p_rawRequest.find("\r\n\r\n") != std::string::npos) 
-	{
-		p_headersCompleted = true;
-
-		std::string			headersPart = p_rawRequest.substr(0,
-								p_rawRequest.find("\r\n\r\n"));
-		std::istringstream	headerStream(headersPart);
-		std::string			line;
-
-		while (std::getline(headerStream, line))
-		{
-			if (!line.empty() && line[line.size() - 1] == '\r')
-				line.erase(line.size() - 1);
-
-			if (line.find("Content-Length:") != std::string::npos)
-			{
-				std::string			lenStr = line.substr(15);
-				trimString(lenStr);
-				std::istringstream	iss(lenStr);
-				iss >> p_expectedBodySize;
-
-				if (p_expectedBodySize > MAX_REQUEST_SIZE)
-					throw std::runtime_error("Content-Length exceeds limit");
-				break;
-			}
-		}
-	}
-
-	// Vérifier si la requête est complète
-	if (p_headersCompleted)
-	{
-		size_t	header_end = p_rawRequest.find("\r\n\r\n") + 4;
-		size_t	body_size = p_rawRequest.size() - header_end;
-
-		if (p_expectedBodySize == 0 || body_size >= p_expectedBodySize)
-			p_isComplete = true;
-	}
-}*/
 void	HttpRequest::appendData(const std::string &data)
 {
 	// 1. Limiter la taille totale de la requête pour éviter les abus
