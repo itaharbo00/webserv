@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 21:14:19 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 21:31:29 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/14 22:04:22 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@ void	Config::parseAllowedMethods(const std::string &value, LocationConfig &locat
 {
 	std::vector<std::string>	methods = split(value, ' ');
 
-	// Commencer à partir de l'index 1 pour ignorer "allowed_methods"
+	// Commencer à partir de l'index 1 pour ignorer "allow_methods"
 	for (size_t i = 1; i < methods.size(); ++i)
 	{
 		std::string	method = methods[i];
@@ -29,7 +29,7 @@ void	Config::parseAllowedMethods(const std::string &value, LocationConfig &locat
 		if (method == "GET" || method == "POST" || method == "DELETE")
 			locationConfig.setAllowedMethods(method);
 		else
-			throw std::runtime_error("Invalid method in allowed_methods directive: " + method);
+			throw std::runtime_error("Invalid method in allow_methods directive: " + method);
 	}
 }
 

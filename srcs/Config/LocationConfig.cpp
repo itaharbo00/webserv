@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 16:20:34 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 21:37:21 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/14 22:04:22 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,46 @@ std::string	LocationConfig::getPath() const
 std::vector<std::string>	LocationConfig::getAllowedMethods() const
 {
 	return p_allowedMethods;
+}
+
+std::string	LocationConfig::getRoot() const
+{
+	return p_root;
+}
+
+std::string	LocationConfig::getIndex() const
+{
+	return p_index;
+}
+
+bool	LocationConfig::getAutoindex() const
+{
+	return p_autoindex;
+}
+
+std::string	LocationConfig::getUploadStore() const
+{
+	return p_uploadStore;
+}
+
+std::string	LocationConfig::getCgiPass() const
+{
+	return p_cgiPass;
+}
+
+std::string	LocationConfig::getCgiExt() const
+{
+	return p_cgiExt;
+}
+
+int	LocationConfig::getReturnCode() const
+{
+	return p_returnCode;
+}
+
+std::string	LocationConfig::getReturnUrl() const
+{
+	return p_returnUrl;
 }
 
 // Vérifie si une méthode est autorisée dans cette location

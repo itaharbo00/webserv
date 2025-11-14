@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 16:16:53 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 21:34:14 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/14 22:04:22 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,14 @@ public:
 	// Getters
 	std::string					getPath() const;
 	std::vector<std::string>	getAllowedMethods() const;
+	std::string					getRoot() const;
+	std::string					getIndex() const;
+	bool						getAutoindex() const;
+	std::string					getUploadStore() const;
+	std::string					getCgiPass() const;
+	std::string					getCgiExt() const;
+	int							getReturnCode() const;
+	std::string					getReturnUrl() const;
 
 	// Setters
 	void						setPath(const std::string &path);

@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 19:30:26 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 21:11:16 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/14 22:04:22 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,10 +53,10 @@ void	Config::directiveLocationChecker(const std::string &directive,
 			const std::vector<std::string> &tokens, std::string line,
 			LocationConfig &locationConfig)
 {
-	if (directive == "allowed_methods")
+	if (directive == "allow_methods")
 	{
 		if (tokens.size() < 2)
-			throw std::runtime_error("allowed_methods directive missing methods");
+			throw std::runtime_error("allow_methods directive missing methods");
 		parseAllowedMethods(line, locationConfig);
 	}
 	else if (directive == "autoindex")
