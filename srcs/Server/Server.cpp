@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 20:57:00 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/14 22:48:03 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,37 @@ Server::Server(const std::string &host, const std::string &port)
 			throw std::runtime_error("Invalid port number (must be 1-65535)");
 		
 		initSocket(); // Initialisation du socket lors de la construction du serveur
+		p_router = Router("./www");
+	}
+	catch (const std::exception &e)
+	{
+		std::cerr << "Error initializing server: " << e.what() << std::endl;
+		throw; // Rejeter l'exception pour indiquer l'échec de la construction
+	}
+}
+
+Server::Server(const std::string &configFile)
+	: p_socket_fd(-1), p_addrinfo(NULL)
+{
+	try
+	{
+		p_config.parseConfigFile(configFile);
+		p_serverConfigs = p_config.getServers();
+
+		if (p_serverConfigs.empty())
+			throw std::runtime_error("No server configurations found in config file");
+
+		const ServerConfig	&firstServer = p_serverConfigs[0];
+
+		std::stringstream	ss;
+		ss << firstServer.getListen();
+		p_port = ss.str();
+
+		p_host = "0.0.0.0";
+
+		initSocket(); // Initialisation du socket lors de la construction du serveur
+		p_router = Router(firstServer.getRoot());
+
 	}
 	catch (const std::exception &e)
 	{

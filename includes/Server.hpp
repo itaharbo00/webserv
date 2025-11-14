@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:26 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 20:57:00 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/14 22:39:12 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,17 +26,22 @@
 # include "HttpRequest.hpp"
 # include "HttpResponse.hpp"
 # include "Router.hpp"
+# include "Config.hpp"
 
 class Server
 {
 public:
 
+	Server(const std::string &configFile);
 	Server(const std::string &host, const std::string &port);
 	~Server();
 
 	void	start();		// Méthode pour démarrer le serveur
 
 private:
+
+	Config						p_config;		// Configuration du serveur
+	std::vector<ServerConfig>	p_serverConfigs;
 
 	int							p_socket_fd;	// Descripteur de fichier du socket
 	struct addrinfo				*p_addrinfo;	// Informations d'adresse du serveur
