@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 17:57:43 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 18:55:45 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 18:32:37 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,15 @@ std::string	HttpRequest::getHttpVersion() const
 std::map<std::string, std::string>	HttpRequest::getHeaders() const
 {
 	return p_headers;
+}
+
+// Retourne la valeur d'un header spécifique
+std::string	HttpRequest::getHeader(const std::string &key) const
+{
+	std::map<std::string, std::string>::const_iterator	it = p_headers.find(key);
+	if (it != p_headers.end())
+		return it->second;
+	return "";
 }
 
 // Retourne le corps de la requête HTTP

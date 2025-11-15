@@ -6,7 +6,7 @@
 #    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/31 20:03:22 by itaharbo          #+#    #+#              #
-#    Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr        #
+#    Updated: 2025/11/15 18:38:02 by itaharbo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -33,6 +33,7 @@ SRCS		= $(SRCDIR)/main.cpp \
 			  $(SRCDIR)/Router/Router_handlers.cpp \
 			  $(SRCDIR)/Router/Router_methods.cpp \
 			  $(SRCDIR)/Router/Router_serveStaticFile.cpp \
+			  $(SRCDIR)/Router/Router_autoindex.cpp \
 			  $(SRCDIR)/Router/Router_error_responses.cpp \
 			  $(SRCDIR)/Router/Router_files_utils.cpp \
 			  $(SRCDIR)/Router/Router_pages.cpp \

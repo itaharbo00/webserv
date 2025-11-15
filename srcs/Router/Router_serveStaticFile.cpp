@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 16:02:38 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 17:24:10 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 18:38:02 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,9 +29,56 @@ HttpResponse	Router::serveStaticFile(const HttpRequest &request)
 	// Construire le chemin complet du fichier
 	std::string	filePath = p_root + uri;
 
-	// Si le chemin est un répertoire, ajouter index.html
-	if (uri[uri.size() - 1] == '/')
-		filePath += "index.html";
+	// Vérifier si le chemin est un répertoire
+	if (isDirectory(filePath))
+	{
+		// Si l'URI ne se termine pas par '/', rediriger
+		if (uri[uri.size() - 1] != '/')
+		{
+			HttpResponse redirectResponse;
+			redirectResponse.setHttpVersion(request.getHttpVersion());
+			redirectResponse.setStatusCode(301);
+			redirectResponse.setHeader("Location", uri + "/");
+			redirectResponse.setHeader("Connection", request.shouldCloseConnection() ? "close" : "keep-alive");
+			return redirectResponse;
+		}
+		
+		// Essayer d'abord de servir index.html
+		std::string indexPath = filePath + "/index.html";
+		if (fileExists(indexPath) && isRegularFile(indexPath))
+		{
+			filePath = indexPath;
+		}
+		else
+		{
+			// Pas d'index.html : vérifier si autoindex est activé
+			// Si p_serverConfig existe, chercher la location et vérifier autoindex
+			if (p_serverConfig)
+			{
+				const LocationConfig *location = p_serverConfig->findLocation(uri);
+				if (location && location->getAutoindex())
+				{
+					// Générer le listing du répertoire
+					try
+					{
+						std::string listing = generateDirectoryListing(filePath, uri);
+						response.setHttpVersion(request.getHttpVersion());
+						response.setStatusCode(200);
+						response.setHeader("Content-Type", "text/html");
+						response.setBody(listing);
+						response.setHeader("Connection", request.shouldCloseConnection() ? "close" : "keep-alive");
+						return response;
+					}
+					catch (const std::exception &e)
+					{
+						return createErrorResponse(500, request.getHttpVersion());
+					}
+				}
+			}
+			// Autoindex désactivé ou pas de config : 403 Forbidden
+			return createErrorResponse(403, request.getHttpVersion());
+		}
+	}
 
 	// Vérifier si le fichier existe et est un fichier régulier
 	if (!fileExists(filePath))

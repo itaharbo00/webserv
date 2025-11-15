@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 14:02:13 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 18:32:37 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,6 +38,7 @@ public:
 	std::string							getUri() const;
 	std::string							getHttpVersion() const;
 	std::map<std::string, std::string>	getHeaders() const;
+	std::string							getHeader(const std::string &key) const;
 	std::string							getBody() const;
 	std::string							getCookie(const std::string &key) const;
 	bool								isComplete() const;

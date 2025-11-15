@@ -6,14 +6,14 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 17:14:11 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 18:32:37 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
-Server::Server(const std::string &host, const std::string &port)
-	: p_socket_fd(-1), p_addrinfo(NULL), p_host(host), p_port(port)
+Server::Server(const std::string &, const std::string &port)
+	: p_config(), p_serverConfigs()
 {
 	try
 	{
@@ -22,8 +22,14 @@ Server::Server(const std::string &host, const std::string &port)
 		if (port_num < 1 || port_num > 65535)
 			throw std::runtime_error("Invalid port number (must be 1-65535)");
 		
+		// Créer un ServerConfig par défaut
+		ServerConfig defaultConfig;
+		defaultConfig.setListen(port_num);
+		defaultConfig.setServerName("localhost");
+		defaultConfig.setRoot("./www");
+		p_serverConfigs.push_back(defaultConfig);
+		
 		initSocket(); // Initialisation du socket lors de la construction du serveur
-		p_router = Router("./www");
 	}
 	catch (const std::exception &e)
 	{
@@ -33,7 +39,7 @@ Server::Server(const std::string &host, const std::string &port)
 }
 
 Server::Server(const std::string &configFile)
-	: p_socket_fd(-1), p_addrinfo(NULL)
+	: p_config(), p_serverConfigs()
 {
 	try
 	{
@@ -43,17 +49,7 @@ Server::Server(const std::string &configFile)
 		if (p_serverConfigs.empty())
 			throw std::runtime_error("No server configurations found in config file");
 
-		const ServerConfig	&firstServer = p_serverConfigs[0];
-
-		std::stringstream	ss;
-		ss << firstServer.getListen();
-		p_port = ss.str();
-
-		p_host = "0.0.0.0";
-
-		initSocket(); // Initialisation du socket lors de la construction du serveur
-		p_router = Router(&firstServer);
-
+		initSocket(); // Initialisation de tous les sockets
 	}
 	catch (const std::exception &e)
 	{
@@ -64,49 +60,111 @@ Server::Server(const std::string &configFile)
 
 Server::~Server()
 {
-	// Fermer tout les clients connectés
-	for (size_t i = 1; i < p_fds.size(); ++i)
-		if (p_fds[i].fd >= 0 && p_fds[i].fd != p_socket_fd)
+	// Fermer tous les clients connectés
+	for (size_t i = 0; i < p_fds.size(); ++i)
+	{
+		bool is_server_fd = false;
+		for (size_t j = 0; j < p_socket_fds.size(); ++j)
+		{
+			if (p_fds[i].fd == p_socket_fds[j])
+			{
+				is_server_fd = true;
+				break;
+			}
+		}
+		if (!is_server_fd && p_fds[i].fd >= 0)
 			close(p_fds[i].fd);
+	}
 	p_fds.clear();
 
-	if (p_socket_fd >= 0)	// Verifier que le socket est valide avant de le fermer
-		close(p_socket_fd);
-
-	// Verifier que p_addrinfo n'est pas NULL avant d'appeler freeaddrinfo
-	if (p_addrinfo)
-		freeaddrinfo(p_addrinfo);
+	// Fermer tous les sockets d'écoute
+	for (size_t i = 0; i < p_socket_fds.size(); ++i)
+	{
+		if (p_socket_fds[i] >= 0)
+			close(p_socket_fds[i]);
+	}
+	p_socket_fds.clear();
 }
 
-void	Server::initSocket()	// Creation, bind et listen du socket
+void	Server::initSocket()	// Creation, bind et listen de tous les sockets
+{
+	// Group ServerConfigs by port to avoid binding multiple times to the same port
+	std::map<int, std::vector<const ServerConfig*> > portToConfigs;
+	
+	for (size_t i = 0; i < p_serverConfigs.size(); ++i)
+	{
+		int port = p_serverConfigs[i].getListen();
+		portToConfigs[port].push_back(&p_serverConfigs[i]);
+	}
+
+	// Create one listening socket per unique port
+	for (std::map<int, std::vector<const ServerConfig*> >::iterator it = portToConfigs.begin();
+		 it != portToConfigs.end(); ++it)
+	{
+		int port = it->first;
+		std::stringstream ss;
+		ss << port;
+		std::string portStr = ss.str();
+		
+		int server_fd = createListeningSocket("0.0.0.0", portStr);
+		p_socket_fds.push_back(server_fd);
+		
+		// Associate this socket with all ServerConfigs on this port
+		// We'll use the first one by default, and select by Host header later
+		p_fd_to_config[server_fd] = it->second[0];
+		
+		std::cout << "Server listening on 0.0.0.0:" << port << std::endl;
+	}
+}
+
+int	Server::createListeningSocket(const std::string &host, const std::string &port)
 {
 	struct addrinfo	hints;
+	struct addrinfo	*addrinfo = NULL;
+	
 	std::memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;			// IPv4
 	hints.ai_socktype = SOCK_STREAM;	// TCP socket
 	hints.ai_flags = AI_PASSIVE;		// Pour bind auto à l'adresse locale (mode serveur)
 
-	if (getaddrinfo(p_host.c_str(), p_port.c_str(), &hints, &p_addrinfo) != 0)
-		throw std::runtime_error("getaddrinfo() failed");
+	if (getaddrinfo(host.c_str(), port.c_str(), &hints, &addrinfo) != 0)
+		throw std::runtime_error("getaddrinfo() failed for port " + port);
 
 	// Création du socket
-	p_socket_fd = socket(p_addrinfo->ai_family, p_addrinfo->ai_socktype,
-		p_addrinfo->ai_protocol);
-	if (p_socket_fd < 0)
-		throw std::runtime_error("socket() failed");
+	int socket_fd = socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol);
+	if (socket_fd < 0)
+	{
+		freeaddrinfo(addrinfo);
+		throw std::runtime_error("socket() failed for port " + port);
+	}
 
 	int opt = 1;
 	// Permet de réutiliser l'adresse immédiatement après la fermeture du socket
-	if (setsockopt(p_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-		throw std::runtime_error("setsockopt() failed");
+	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+	{
+		close(socket_fd);
+		freeaddrinfo(addrinfo);
+		throw std::runtime_error("setsockopt() failed for port " + port);
+	}
 
 	// Bind du socket à l'adresse et au port spécifiés
-	if (bind(p_socket_fd, p_addrinfo->ai_addr, p_addrinfo->ai_addrlen) < 0)
-		throw std::runtime_error("bind() failed");
+	if (bind(socket_fd, addrinfo->ai_addr, addrinfo->ai_addrlen) < 0)
+	{
+		close(socket_fd);
+		freeaddrinfo(addrinfo);
+		throw std::runtime_error("bind() failed for port " + port);
+	}
 
 	// Écoute des connexions entrantes
-	if (listen(p_socket_fd, SOMAXCONN) < 0)	// SOMAXCONN pour file d'attente maximale
-		throw std::runtime_error("listen() failed");
+	if (listen(socket_fd, SOMAXCONN) < 0)	// SOMAXCONN pour file d'attente maximale
+	{
+		close(socket_fd);
+		freeaddrinfo(addrinfo);
+		throw std::runtime_error("listen() failed for port " + port);
+	}
+	
+	freeaddrinfo(addrinfo);
+	return socket_fd;
 }
 
 void	Server::setNonBlocking(int fd)	// Mettre un descripteur en mode non-bloquant
@@ -130,19 +188,22 @@ void	Server::setNonBlocking(int fd)	// Mettre un descripteur en mode non-bloquan
 	}
 }
 
-void	Server::initServerPollfd()	// Initialiser le pollfd du serveur
+void	Server::initServerPollfds()	// Initialiser les pollfds des serveurs
 {
-	// Ajouter le socket du serveur à la liste des fds surveillés
-	struct pollfd	server_pollfd;
-	server_pollfd.fd = p_socket_fd;
-	server_pollfd.events = POLLIN; // Surveiller les événements de lecture
-	server_pollfd.revents = 0;
-	p_fds.push_back(server_pollfd); // Ajouter le serveur à la liste des fds surveillés
+	// Ajouter tous les sockets d'écoute à la liste des fds surveillés
+	for (size_t i = 0; i < p_socket_fds.size(); ++i)
+	{
+		struct pollfd	server_pollfd;
+		server_pollfd.fd = p_socket_fds[i];
+		server_pollfd.events = POLLIN; // Surveiller les événements de lecture
+		server_pollfd.revents = 0;
+		p_fds.push_back(server_pollfd); // Ajouter le serveur à la liste des fds surveillés
+	}
 }
 
-void	Server::acceptNewClient()	// Accepter une nouvelle connexion client
+void	Server::acceptNewClient(int server_fd)	// Accepter une nouvelle connexion client
 {
-	int	client_fd = accept(p_socket_fd, NULL, NULL);
+	int	client_fd = accept(server_fd, NULL, NULL);
 	if (client_fd < 0)
 	{
 		if (errno == EWOULDBLOCK || errno == EAGAIN)
@@ -163,6 +224,9 @@ void	Server::acceptNewClient()	// Accepter une nouvelle connexion client
 
 	// Enregistrer le temps de la dernière activité du client
 	p_clients_last_activity[client_fd] = std::time(NULL);
+	
+	// Enregistrer le serveur d'origine pour ce client
+	p_client_to_server_fd[client_fd] = server_fd;
 	
 	// Log de la nouvelle connexion
 	std::cout << "[" << client_fd << "] New client connected" << std::endl;
@@ -196,8 +260,14 @@ bool	Server::handleClient(size_t index)	// Gérer la communication avec un clien
 				// Parser la requête complète
 				request.parse();
 
+				// Sélectionner le ServerConfig approprié en fonction du port et du Host header
+				const ServerConfig* serverConfig = selectServerConfig(client_fd, request);
+				
+				// Créer un Router avec le bon ServerConfig
+				Router	router(serverConfig);
+
 				// Router la requête pour obtenir une réponse
-				HttpResponse	response = p_router.route(request);
+				HttpResponse	response = router.route(request);
 
 				// Envoyer la réponse au client
 				std::string		response_str = response.toString();
@@ -284,7 +354,15 @@ bool	Server::handleClient(size_t index)	// Gérer la communication avec un clien
 			std::cerr << "[" << client_fd << "] HTTP parsing error: " 
 					  << statusCode << " - " << errorMsg << std::endl;
 
-			HttpResponse errorResponse = p_router.createErrorResponse(statusCode, version);
+			// Récupérer le ServerConfig pour créer un Router temporaire
+			std::map<int, int>::const_iterator it = p_client_to_server_fd.find(client_fd);
+			const ServerConfig* serverConfig = (it != p_client_to_server_fd.end() && 
+												 p_fd_to_config.find(it->second) != p_fd_to_config.end())
+												? p_fd_to_config.find(it->second)->second
+												: &p_serverConfigs[0];
+			Router router(serverConfig);
+			
+			HttpResponse errorResponse = router.createErrorResponse(statusCode, version);
 
 			std::string	error_response_str = errorResponse.toString();
 			ssize_t sent = send(client_fd, error_response_str.c_str(), 
@@ -334,11 +412,12 @@ void	Server::start()	// Méthode pour démarrer le serveur
 	signal(SIGINT, handleSignal);	// Gérer l'interruption clavier (Ctrl+C)
 	signal(SIGTERM, handleSignal);	// Gérer le signal de terminaison
 
-	setNonBlocking(p_socket_fd); // Mettre le socket du serveur en mode non-bloquant
-	initServerPollfd();          // Initialiser le pollfd du serveur
+	// Mettre tous les sockets d'écoute en mode non-bloquant
+	for (size_t i = 0; i < p_socket_fds.size(); ++i)
+		setNonBlocking(p_socket_fds[i]);
+	
+	initServerPollfds();          // Initialiser les pollfds des serveurs
 
-	// Log du démarrage du serveur
-	std::cout << "Server listening on " << p_host << ":" << p_port << std::endl;
 	std::cout << "Waiting for connections..." << std::endl;
 
 	g_isRunning = true;
@@ -363,17 +442,25 @@ void	Server::start()	// Méthode pour démarrer le serveur
 			{
 				if (p_fds[i].revents & POLLIN)	// Vérifier les événements de lecture
 				{
-					if (p_fds[i].fd == p_socket_fd)
+					// Vérifier si c'est un socket d'écoute
+					bool is_server_fd = false;
+					for (size_t j = 0; j < p_socket_fds.size(); ++j)
 					{
-						try
+						if (p_fds[i].fd == p_socket_fds[j])
 						{
-							acceptNewClient();	// Nouvelle connexion entrante
-						}
-						catch (const std::exception&)
-						{
+							is_server_fd = true;
+							try
+							{
+								acceptNewClient(p_socket_fds[j]);	// Nouvelle connexion entrante
+							}
+							catch (const std::exception&)
+							{
+							}
+							break;
 						}
 					}
-					else
+					
+					if (!is_server_fd)
 					{
 						try
 						{
@@ -382,11 +469,8 @@ void	Server::start()	// Méthode pour démarrer le serveur
 						}
 						catch (const std::exception&)
 						{
-							if (i > 0)
-							{
-								closeClient(i);  // Utiliser closeClient() pour tout nettoyer
-								--i;
-							}
+							closeClient(i);  // Utiliser closeClient() pour tout nettoyer
+							--i;
 						}
 					}
 				}
@@ -417,4 +501,52 @@ void	Server::start()	// Méthode pour démarrer le serveur
 	
 	// Log de l'arrêt du serveur
 	std::cout << "\nServer shutting down gracefully..." << std::endl;
+}
+
+const ServerConfig*	Server::selectServerConfig(int client_fd, const HttpRequest &request) const
+{
+	// Trouver le server_fd d'origine pour ce client
+	std::map<int, int>::const_iterator it = p_client_to_server_fd.find(client_fd);
+	if (it == p_client_to_server_fd.end())
+	{
+		// Fallback: retourner le premier ServerConfig si on ne trouve pas le mapping
+		return &p_serverConfigs[0];
+	}
+	
+	int server_fd = it->second;
+	
+	// Récupérer le ServerConfig par défaut pour ce port
+	std::map<int, const ServerConfig*>::const_iterator configIt = p_fd_to_config.find(server_fd);
+	if (configIt == p_fd_to_config.end())
+	{
+		// Fallback: retourner le premier ServerConfig
+		return &p_serverConfigs[0];
+	}
+	
+	const ServerConfig* defaultConfig = configIt->second;
+	int port = defaultConfig->getListen();
+	
+	// Essayer de matcher le Host header avec les server_names sur le même port
+	std::string hostHeader = request.getHeader("Host");
+	if (!hostHeader.empty())
+	{
+		// Extraire le hostname (enlever le port si présent)
+		size_t colonPos = hostHeader.find(':');
+		std::string hostname = (colonPos != std::string::npos) 
+			? hostHeader.substr(0, colonPos) 
+			: hostHeader;
+		
+		// Chercher un ServerConfig qui match le hostname sur ce port
+		for (size_t i = 0; i < p_serverConfigs.size(); ++i)
+		{
+			if (p_serverConfigs[i].getListen() == port &&
+				p_serverConfigs[i].getServerName() == hostname)
+			{
+				return &p_serverConfigs[i];
+			}
+		}
+	}
+	
+	// Pas de match spécifique : retourner le ServerConfig par défaut pour ce port
+	return defaultConfig;
 }

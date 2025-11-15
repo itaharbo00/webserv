@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:45 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 17:49:10 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 18:38:02 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,6 +66,8 @@ private:
 	bool				isPathSecure(const std::string &uri);
 	bool				isFileTooLarge(const std::string &filePath);
 	std::string			getContentType(const std::string &filePath);
+	std::string			generateDirectoryListing(const std::string &dirPath,
+							const std::string &uri);
 
 	// Pages de contenu (home, about)
 	bool				getRightPages(int statusCode, std::string &page);
