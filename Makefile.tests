@@ -6,7 +6,7 @@
 #    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/11/01 14:07:56 by itaharbo          #+#    #+#              #
-#    Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr        #
+#    Updated: 2025/11/15 18:06:33 by itaharbo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -57,6 +57,7 @@ TEST_CONFIG			= tests/test_Config.cpp
 TEST_LOCATION		= tests/test_LocationConfig.cpp
 TEST_SERVERCONFIG	= tests/test_ServerConfig.cpp
 TEST_METHODS		= tests/test_Router_methods.cpp
+TEST_LOCATIONCONFIG_INTEGRATION = tests/test_Router_locationconfig.cpp
 
 TARGET_SERVER		= runTests_Server
 TARGET_HTTP			= runTests_HttpRequest
@@ -68,8 +69,9 @@ TARGET_CONFIG		= runTests_Config
 TARGET_LOCATION		= runTests_LocationConfig
 TARGET_SERVERCONFIG	= runTests_ServerConfig
 TARGET_METHODS		= runTests_Router_methods
+TARGET_LOCATIONCONFIG_INTEGRATION = runTests_Router_LocationConfig
 
-all: $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_RESPONSE) $(TARGET_ROUTER) $(TARGET_INTEGRATION) $(TARGET_PARTIAL_SEND) $(TARGET_CONFIG) $(TARGET_LOCATION) $(TARGET_SERVERCONFIG) $(TARGET_METHODS)
+all: $(TARGET_CONFIG) $(TARGET_LOCATIONCONFIG_FULL) $(TARGET_ROUTER) $(TARGET_SERVER) $(TARGET_INTEGRATION) $(TARGET_METHODS) $(TARGET_LOCATIONCONFIG_INTEGRATION)
 
 # Tests unitaires Server uniquement
 $(TARGET_SERVER): $(SRCS_ALL) $(TEST_SERVER)
@@ -106,8 +108,12 @@ $(TARGET_SERVERCONFIG): $(SRCS_CONFIG) $(TEST_SERVERCONFIG)
 	$(CC) $(CFLAGS) -o $(TARGET_SERVERCONFIG) srcs/Config/ServerConfig.cpp srcs/Config/ServerConfig_getters.cpp srcs/Config/ServerConfig_setters.cpp srcs/Config/LocationConfig.cpp srcs/Config/LocationConfig_setters.cpp $(TEST_SERVERCONFIG)
 
 # Tests Router methods (POST/DELETE)
-$(TARGET_METHODS): $(SRCS_HTTP) $(SRCS_RESPONSE) $(SRCS_ROUTER) $(TEST_METHODS)
-	$(CC) $(CFLAGS) -o $(TARGET_METHODS) $(SRCS_HTTP) $(SRCS_RESPONSE) $(SRCS_ROUTER) $(TEST_METHODS)
+$(TARGET_METHODS): $(SRCS_ROUTER) $(TEST_METHODS)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $(TARGET_METHODS) $(SRCS_ROUTER) $(TEST_METHODS)
+
+# Tests Router + LocationConfig integration
+$(TARGET_LOCATIONCONFIG_INTEGRATION): $(SRCS_HTTP) $(SRCS_RESPONSE) $(SRCS_ROUTER) $(SRCS_CONFIG) $(TEST_LOCATIONCONFIG_INTEGRATION)
+	$(CC) $(CFLAGS) -o $(TARGET_LOCATIONCONFIG_INTEGRATION) $(SRCS_HTTP) $(SRCS_RESPONSE) $(SRCS_ROUTER) $(SRCS_CONFIG) $(TEST_LOCATIONCONFIG_INTEGRATION)
 
 run_server: $(TARGET_SERVER)
 	./$(TARGET_SERVER)
@@ -139,9 +145,12 @@ run_serverconfig: $(TARGET_SERVERCONFIG)
 run_methods: $(TARGET_METHODS)
 	./$(TARGET_METHODS)
 
-run_all: run_http run_response run_router run_server run_integration run_config run_methods
+run_router_locationconfig: $(TARGET_LOCATIONCONFIG_INTEGRATION)
+	./$(TARGET_LOCATIONCONFIG_INTEGRATION)
+
+run_all: run_http run_response run_router run_server run_integration run_config run_methods run_router_locationconfig
 
 clean:
-	rm -f $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_RESPONSE) $(TARGET_ROUTER) $(TARGET_INTEGRATION) $(TARGET_PARTIAL_SEND) $(TARGET_CONFIG) $(TARGET_LOCATION) $(TARGET_SERVERCONFIG) $(TARGET_METHODS)
+	rm -f $(TARGET_SERVER) $(TARGET_HTTP) $(TARGET_RESPONSE) $(TARGET_ROUTER) $(TARGET_INTEGRATION) $(TARGET_PARTIAL_SEND) $(TARGET_CONFIG) $(TARGET_LOCATION) $(TARGET_SERVERCONFIG) $(TARGET_METHODS) $(TARGET_LOCATIONCONFIG_INTEGRATION)
 
-.PHONY: all run_server run_http run_response run_router run_integration run_partial_send run_config run_location run_serverconfig run_methods run_all clean
+.PHONY: all run_server run_http run_response run_router run_integration run_partial_send run_config run_location run_serverconfig run_methods run_router_locationconfig run_all clean

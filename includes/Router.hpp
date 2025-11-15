@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:45 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 17:49:10 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 # include "HttpRequest.hpp"
 # include "HttpResponse.hpp"
+# include "ServerConfig.hpp"
 # include <fstream>
 # include <sys/stat.h>	// stat
 
@@ -23,6 +24,7 @@ class Router
 public:
 	Router();
 	Router(const std::string &root); // Avec racine des fichiers
+	Router(const ServerConfig *serverConfig); // Avec config serveur
 	~Router();
 
 	// Méthode principale de routing
@@ -35,15 +37,26 @@ public:
 private:
 
 	std::string			p_root; // Racine des fichiers à servir
+	const ServerConfig	*p_serverConfig; // Configuration du serveur
 
 	// Handlers pour les différentes routes
 	HttpResponse		handleHomePage(const HttpRequest &request);
 	HttpResponse		handleAboutPage(const HttpRequest &request);
 	HttpResponse		handleNotFound(const HttpRequest &request);
 	HttpResponse		handleMethodNotAllowed(const HttpRequest &request);
-	HttpResponse		handlePost(const HttpRequest &request);
+	HttpResponse		handlePost(const HttpRequest &request,
+							const LocationConfig *location);
 	HttpResponse		handleDelete(const HttpRequest &request);
 	HttpResponse		serveStaticFile(const HttpRequest &request);
+
+	HttpResponse		routeWithConfig(const HttpRequest &request);
+	HttpResponse		routeWithoutConfig(const HttpRequest &request);
+	HttpResponse		routeByMethod(const HttpRequest &request,
+							const LocationConfig *location);
+	HttpResponse		handleRedirect(const HttpRequest &request,
+							const LocationConfig *location);
+	std::string			generateRedirectPage(int statusCode,
+							const std::string &locationUrl);
 
 	// Fonctions utilitaires pour la gestion des fichiers
 	std::string			readFile(const std::string &filePath);

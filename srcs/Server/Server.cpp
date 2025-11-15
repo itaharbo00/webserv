@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 22:48:03 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 17:14:11 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ Server::Server(const std::string &configFile)
 		p_host = "0.0.0.0";
 
 		initSocket(); // Initialisation du socket lors de la construction du serveur
-		p_router = Router(firstServer.getRoot());
+		p_router = Router(&firstServer);
 
 	}
 	catch (const std::exception &e)

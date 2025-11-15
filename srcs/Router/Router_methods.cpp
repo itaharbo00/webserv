@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/15 15:04:18 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 17:17:09 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ static std::string	generateUniqueFilename(const std::string &uploadDir)
 	return ss.str();
 }
 
-HttpResponse	Router::handlePost(const HttpRequest &request)
+HttpResponse	Router::handlePost(const HttpRequest &request, const LocationConfig *location)
 {
 	// 1. Validation Content-Length (NGINX exige ce header pour POST)
 	std::map<std::string, std::string> headers = request.getHeaders();
@@ -43,9 +43,12 @@ HttpResponse	Router::handlePost(const HttpRequest &request)
 	if (body.empty())
 		return createErrorResponse(400, request.getHttpVersion());
 
-	// 3. Déterminer le dossier d'upload (hardcodé pour l'instant)
-	// TODO: Utiliser LocationConfig::getUploadStore() quand intégré
+	// 3. Déterminer le dossier d'upload
 	std::string	uploadDir = "./uploads";
+
+	// Si location fournie et upload activé, utiliser son chemin
+	if (location && location->hasUpload())
+		uploadDir = location->getUploadStore();
 
 	// 4. Créer le dossier s'il n'existe pas
 	struct stat	st;
