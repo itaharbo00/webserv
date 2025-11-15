@@ -6,11 +6,52 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 17:56:43 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 18:45:12 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HttpRequest.hpp"
+
+// Fonction pour décoder une URL (convertir %XX en caractère)
+std::string	HttpRequest::urlDecode(const std::string &str)
+{
+	std::string result;
+	result.reserve(str.length());
+	
+	for (size_t i = 0; i < str.length(); ++i)
+	{
+		if (str[i] == '%' && i + 2 < str.length())
+		{
+			// Convertir les deux caractères hexadécimaux suivants
+			std::string hex = str.substr(i + 1, 2);
+			char *endptr;
+			long value = strtol(hex.c_str(), &endptr, 16);
+			
+			// Vérifier que la conversion a réussi
+			if (endptr == hex.c_str() + 2)
+			{
+				result += static_cast<char>(value);
+				i += 2; // Sauter les deux caractères hex
+			}
+			else
+			{
+				// Séquence d'échappement invalide, garder tel quel
+				result += str[i];
+			}
+		}
+		else if (str[i] == '+')
+		{
+			// '+' est parfois utilisé pour représenter un espace
+			result += ' ';
+		}
+		else
+		{
+			result += str[i];
+		}
+	}
+	
+	return result;
+}
 
 // Trim les espaces en début et fin de chaîne
 void	HttpRequest::trimString(std::string &str)
@@ -49,8 +90,11 @@ void	HttpRequest::validateRequestLine()
 	if (p_uri[0] != '/')
 		throw std::runtime_error("Invalid URI: " + p_uri);
 
-	// Vérifier directory traversal
-	if (p_uri.find("..") != std::string::npos)
+	// Décoder l'URL pour détecter les path traversal encodés (%2e%2e, etc.)
+	std::string decodedUri = urlDecode(p_uri);
+	
+	// Vérifier directory traversal (sur l'URI décodée)
+	if (decodedUri.find("..") != std::string::npos)
 		throw std::runtime_error("Directory traversal attempt in URI: " + p_uri);
 
 	// Vérifier longueur de l'URI

@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:45 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 17:24:25 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,8 @@ private:
 	HttpResponse		handleAboutPage(const HttpRequest &request);
 	HttpResponse		handleNotFound(const HttpRequest &request);
 	HttpResponse		handleMethodNotAllowed(const HttpRequest &request);
+	HttpResponse		handlePost(const HttpRequest &request);
+	HttpResponse		handleDelete(const HttpRequest &request);
 	HttpResponse		serveStaticFile(const HttpRequest &request);
 
 	// Fonctions utilitaires pour la gestion des fichiers
@@ -77,6 +79,7 @@ private:
 	std::string			getPage_404() const;
 	std::string			getPage_405() const;
 	std::string			getPage_408() const;
+	std::string			getPage_411() const;
 	std::string			getPage_413() const;
 	std::string			getPage_414() const;
 	std::string			getPage_415() const;

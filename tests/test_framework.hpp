@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/01 17:12:53 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/12 21:39:40 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,12 @@
 // Macros pour les assertions
 #define ASSERT_TRUE(cond, name) assertTrue((cond), (name))
 #define ASSERT_EQUAL(exp, act, name) assertEqual((exp), (act), (name))
+
+// Macros pour les tests d'intégration
+#define TEST_START(name) std::cout << "\n[TEST] " << (name) << std::endl
+#define TEST_END() std::cout << "[DONE]" << std::endl
+#define ASSERT(cond, msg) if (!(cond)) { std::cerr << "[FAIL] " << (msg) << std::endl; testsFailed++; } else { testsPassed++; }
+
 
 // Compteurs globaux pour les tests
 static int	testsPassed = 0;

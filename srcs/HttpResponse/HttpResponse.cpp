@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 21:38:40 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 01:46:24 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,6 +136,7 @@ std::string	HttpResponse::getStatusMessage(int code) const
 		case 404: return "Not Found";
 		case 405: return "Method Not Allowed";
 		case 408: return "Request Timeout";
+		case 411: return "Length Required";
 		case 413: return "Payload Too Large";
 		case 414: return "URI Too Long";
 		case 415: return "Unsupported Media Type";

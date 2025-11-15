@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 23:00:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 20:33:39 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -178,8 +178,8 @@ void	testPOSTRequestParsing()
 		                      "Hello World";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("HTTP/1.1 405") != std::string::npos, 
-			"POST returns 405 Method Not Allowed");
+		ASSERT_TRUE(response.find("HTTP/1.1 201") != std::string::npos, 
+			"POST returns 201 Created");
 		
 		close(sock_fd);
 	}
@@ -194,8 +194,8 @@ void	testPOSTRequestParsing()
 		                      "\r\n";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("HTTP/1.1 405") != std::string::npos, 
-			"POST with empty body returns 405 Method Not Allowed");
+		ASSERT_TRUE(response.find("HTTP/1.1 400") != std::string::npos, 
+			"POST with empty body returns 400 Bad Request");
 		
 		close(sock_fd);
 	}
@@ -229,8 +229,8 @@ void	testDELETERequestParsing()
 		std::string request = "DELETE /resource/123 HTTP/1.1\r\nHost: localhost\r\n\r\n";
 		std::string response = sendAndReceive(sock_fd, request);
 		
-		ASSERT_TRUE(response.find("HTTP/1.1 405") != std::string::npos, 
-			"DELETE request returns 405 Method Not Allowed");
+		ASSERT_TRUE(response.find("HTTP/1.1 404") != std::string::npos, 
+			"DELETE request returns 404 Not Found (resource does not exist)");
 		
 		close(sock_fd);
 	}
@@ -374,13 +374,14 @@ void	testLargeRequests()
 				response = buffer;
 			}
 			
-			// Note: POST is not allowed, should return 405
+			// Note: POST should return 201 Created or 400/413 if body handling fails
 			ASSERT_TRUE(response.find("200 OK") != std::string::npos || 
+			            response.find("201 Created") != std::string::npos ||
 			            response.find("404") != std::string::npos ||
-			            response.find("405") != std::string::npos ||
 			            response.find("400 Bad Request") != std::string::npos ||
+			            response.find("413") != std::string::npos ||
 			            response.empty(),
-				"Max size request handled (200, 404, 405, 400, or timeout acceptable)");
+				"Max size request handled (200, 201, 404, 400, 413, or timeout acceptable)");
 		}
 		else
 		{
@@ -1377,6 +1378,259 @@ void	testStaticFileServing_MultipleFiles()
 }
 
 // ==========================================
+// POST/DELETE METHODS INTEGRATION TESTS
+// ==========================================
+
+void	testPostMethod_EmptyBody()
+{
+	TEST_START("POST with empty body returns 400");
+	
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8085");
+		exit(0);
+	}
+	
+	sleep(1);
+	
+	int sock = createClientSocket("127.0.0.1", 8085);
+	ASSERT(sock >= 0, "Failed to create client socket");
+	
+	std::string request = 
+		"POST /upload HTTP/1.1\r\n"
+		"Host: localhost:8085\r\n"
+		"Content-Length: 0\r\n"
+		"\r\n";
+	
+	send(sock, request.c_str(), request.length(), 0);
+	
+	char buffer[4096];
+	int n = recv(sock, buffer, sizeof(buffer) - 1, 0);
+	buffer[n] = '\0';
+	
+	std::string response(buffer);
+	ASSERT(response.find("400") != std::string::npos, "Expected 400 Bad Request");
+	
+	close(sock);
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+	
+	TEST_END();
+}
+
+void	testPostMethod_ValidUpload()
+{
+	TEST_START("POST with valid body uploads file and returns 201");
+	
+	mkdir("./uploads", 0755);
+	
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8086");
+		exit(0);
+	}
+	
+	sleep(1);
+	
+	int sock = createClientSocket("127.0.0.1", 8086);
+	ASSERT(sock >= 0, "Failed to create client socket");
+	
+	std::string body = "Hello World! This is test upload content.";
+	std::stringstream ss;
+	ss << body.length();
+	
+	std::string request = 
+		"POST /upload HTTP/1.1\r\n"
+		"Host: localhost:8086\r\n"
+		"Content-Type: text/plain\r\n"
+		"Content-Length: " + ss.str() + "\r\n"
+		"\r\n" + body;
+	
+	send(sock, request.c_str(), request.length(), 0);
+	
+	char buffer[4096];
+	int n = recv(sock, buffer, sizeof(buffer) - 1, 0);
+	buffer[n] = '\0';
+	
+	std::string response(buffer);
+	ASSERT(response.find("201") != std::string::npos, "Expected 201 Created");
+	ASSERT(response.find("Location:") != std::string::npos, "Expected Location header");
+	
+	close(sock);
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+	
+	TEST_END();
+}
+
+void	testPostMethod_LargeFile()
+{
+	TEST_START("POST with large file (100KB) uploads successfully");
+	
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8087");
+		exit(0);
+	}
+	
+	sleep(1);
+	
+	int sock = createClientSocket("127.0.0.1", 8087);
+	ASSERT(sock >= 0, "Failed to create client socket");
+	
+	std::string body(1024 * 100, 'A');
+	std::stringstream ss;
+	ss << body.length();
+	
+	std::string request = 
+		"POST /upload HTTP/1.1\r\n"
+		"Host: localhost:8087\r\n"
+		"Content-Type: application/octet-stream\r\n"
+		"Content-Length: " + ss.str() + "\r\n"
+		"\r\n" + body;
+	
+	send(sock, request.c_str(), request.length(), 0);
+	
+	char buffer[4096];
+	int n = recv(sock, buffer, sizeof(buffer) - 1, 0);
+	buffer[n] = '\0';
+	
+	std::string response(buffer);
+	ASSERT(response.find("201") != std::string::npos, "Expected 201 Created for large file");
+	
+	close(sock);
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+	
+	TEST_END();
+}
+
+void	testDeleteMethod_ExistingFile()
+{
+	TEST_START("DELETE existing file returns 204");
+	
+	std::ofstream testFile("./www/test_delete.txt");
+	testFile << "Test content";
+	testFile.close();
+	
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8088");
+		exit(0);
+	}
+	
+	sleep(1);
+	
+	int sock = createClientSocket("127.0.0.1", 8088);
+	ASSERT(sock >= 0, "Failed to create client socket");
+	
+	std::string request = 
+		"DELETE /test_delete.txt HTTP/1.1\r\n"
+		"Host: localhost:8088\r\n"
+		"\r\n";
+	
+	send(sock, request.c_str(), request.length(), 0);
+	
+	char buffer[4096];
+	int n = recv(sock, buffer, sizeof(buffer) - 1, 0);
+	buffer[n] = '\0';
+	
+	std::string response(buffer);
+	ASSERT(response.find("204") != std::string::npos, "Expected 204 No Content");
+	
+	std::ifstream checkFile("./www/test_delete.txt");
+	ASSERT(!checkFile.is_open(), "File should be deleted");
+	
+	close(sock);
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+	
+	TEST_END();
+}
+
+void	testDeleteMethod_NonExistentFile()
+{
+	TEST_START("DELETE non-existent file returns 404");
+	
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8089");
+		exit(0);
+	}
+	
+	sleep(1);
+	
+	int sock = createClientSocket("127.0.0.1", 8089);
+	ASSERT(sock >= 0, "Failed to create client socket");
+	
+	std::string request = 
+		"DELETE /nonexistent_file.txt HTTP/1.1\r\n"
+		"Host: localhost:8089\r\n"
+		"\r\n";
+	
+	send(sock, request.c_str(), request.length(), 0);
+	
+	char buffer[4096];
+	int n = recv(sock, buffer, sizeof(buffer) - 1, 0);
+	buffer[n] = '\0';
+	
+	std::string response(buffer);
+	ASSERT(response.find("404") != std::string::npos, "Expected 404 Not Found");
+	
+	close(sock);
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+	
+	TEST_END();
+}
+
+void	testDeleteMethod_Directory()
+{
+	TEST_START("DELETE directory returns 403");
+	
+	mkdir("./www/test_dir", 0755);
+	
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		runServerBackground("127.0.0.1", "8090");
+		exit(0);
+	}
+	
+	sleep(1);
+	
+	int sock = createClientSocket("127.0.0.1", 8090);
+	ASSERT(sock >= 0, "Failed to create client socket");
+	
+	std::string request = 
+		"DELETE /test_dir HTTP/1.1\r\n"
+		"Host: localhost:8090\r\n"
+		"\r\n";
+	
+	send(sock, request.c_str(), request.length(), 0);
+	
+	char buffer[4096];
+	int n = recv(sock, buffer, sizeof(buffer) - 1, 0);
+	buffer[n] = '\0';
+	
+	std::string response(buffer);
+	ASSERT(response.find("403") != std::string::npos, "Expected 403 Forbidden");
+	
+	rmdir("./www/test_dir");
+	
+	close(sock);
+	kill(pid, SIGTERM);
+	waitpid(pid, NULL, 0);
+	
+	TEST_END();
+}
+
+// ==========================================
 // MAIN
 // ==========================================
 
@@ -1408,6 +1662,14 @@ int	main()
 	testStaticFileServing_404();
 	testStaticFileServing_PathTraversal();
 	testStaticFileServing_MultipleFiles();
+
+	// POST/DELETE Methods Integration Tests
+	testPostMethod_EmptyBody();
+	testPostMethod_ValidUpload();
+	testPostMethod_LargeFile();
+	testDeleteMethod_ExistingFile();
+	testDeleteMethod_NonExistentFile();
+	testDeleteMethod_Directory();
 
 	std::cout << "\n=============================================" << std::endl;
 	return printTestSummary();

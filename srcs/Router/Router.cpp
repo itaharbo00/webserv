@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:48 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 16:31:27 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 15:08:41 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,14 @@ HttpResponse	Router::route(const HttpRequest &request)
 			return handleHomePage(request); // Rediriger vers la page d'accueil
 
 		return serveStaticFile(request);  // ← Essayer de servir un fichier
+	}
+	else if (method == "POST")
+	{
+		return handlePost(request);
+	}
+	else if (method == "DELETE")
+	{
+		return handleDelete(request);
 	}
 	else
 		return handleMethodNotAllowed(request);

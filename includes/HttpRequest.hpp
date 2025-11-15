@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 14:02:13 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 00:18:55 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 # include <stdexcept>
 # include <cctype>
 # include <cstring>
+# include <cstdlib>
 
 # define MAX_HEADER_LINE_SIZE 8192  // 8 KB
 # define MAX_REQUEST_SIZE 1048576 // 1 MB
@@ -69,7 +70,8 @@ private:
 	void								chunkedBody(std::istringstream &stream);
 	
 	// Fonctions utilitaires
-	void								trimString(std::string &str);
+	void									trimString(std::string &str);
+	std::string								urlDecode(const std::string &str);
 
 	// Fonctions de validation
 	void								validateRequestLine();

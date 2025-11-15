@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 00:00:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 01:20:48 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -183,11 +183,40 @@ std::string	Router::getPage_408() const
 		"</head>\n"
 		"<body>\n"
 		"    <h1>408 - Request Timeout</h1>\n"
-		"    <p>The server timed out waiting for the request.</p>\n"
-		"    <nav>\n"
-		"        <a href=\"/\">Go to Home</a>\n"
-		"    </nav>\n"
-		"</body>\n"
+	"    <p>The server timed out waiting for the request.</p>\n"
+	"    <nav>\n"
+	"        <a href=\"/\">Go to Home</a>\n"
+	"    </nav>\n"
+	"</body>\n"
+	"</html>";
+}
+
+std::string	Router::getPage_411() const
+{
+	return
+		"<!DOCTYPE html>\\n"
+		"<html>\\n"
+		"<head>\\n"
+		"    <title>411 - Length Required</title>\\n"
+		"    <style>\\n"
+		"        body { \\n"
+		"            font-family: Arial, sans-serif; \\n"
+		"            text-align: center; \\n"
+		"            padding: 50px; \\n"
+		"            background-color: #f8d7da;\\n"
+		"        }\\n"
+		"        h1 { color: #721c24; }\\n"
+		"        a { color: #007bff; text-decoration: none; }\\n"
+		"        a:hover { text-decoration: underline; }\\n"
+		"    </style>\\n"
+		"</head>\\n"
+		"<body>\\n"
+		"    <h1>411 - Length Required</h1>\\n"
+		"    <p>The request did not specify the length of its content, which is required.</p>\\n"
+		"    <nav>\\n"
+		"        <a href=\\\"/\\\">Go to Home</a>\\n"
+		"    </nav>\\n"
+		"</body>\\n"
 		"</html>";
 }
 

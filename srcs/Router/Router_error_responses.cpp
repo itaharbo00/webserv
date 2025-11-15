@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 15:27:04 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 16:14:28 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/15 15:51:34 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,6 +58,7 @@ bool	Router::getRightPages(int statusCode, std::string &html)
 		case 404: html = getPage_404(); break;
 		case 405: html = getPage_405(); break;
 		case 408: html = getPage_408(); break;
+		case 411: html = getPage_411(); break;
 		case 413: html = getPage_413(); break;
 		case 414: html = getPage_414(); break;
 		case 415: html = getPage_415(); break;
