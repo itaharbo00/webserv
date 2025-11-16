@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 16:16:53 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 22:04:22 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 15:56:46 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 # include <string>
 # include <vector>
+# include <map>
 
 class LocationConfig
 {
@@ -31,8 +32,6 @@ public:
 	std::string					getIndex() const;
 	bool						getAutoindex() const;
 	std::string					getUploadStore() const;
-	std::string					getCgiPass() const;
-	std::string					getCgiExt() const;
 	int							getReturnCode() const;
 	std::string					getReturnUrl() const;
 
@@ -43,28 +42,32 @@ public:
 	void						setIndex(const std::string &index);
 	void						setAutoindex(bool autoindex);
 	void						setUploadStore(const std::string &uploadStore);
-	void						setCgiPass(const std::string &cgiPath);
-	void						setCgiExt(const std::string &cgiExt);
 	void						setReturn(int code, const std::string &url);
 
 	// Checkers
 	bool						isMethodAllowed(const std::string &method) const;
 	bool						hasRedirect() const;
-	bool						hasCgi() const;
 	bool						hasUpload() const;
+
+	// CGI
+	void						addCgiPass(const std::string &extension,
+									const std::string &cgiPath);
+	bool						hasCgi() const;
+	bool						isCgiExtension(const std::string &extension) const;
+	std::string					getCgiPass(const std::string &extension) const;
+	const std::map<std::string, std::string>& getCgiPassMap() const;
 
 private:
 
-	std::string					p_path;				// Chemin de la location
-	std::vector<std::string>	p_allowedMethods;	// Méthodes autorisées
-	std::string					p_root;				// Racine pour cette location
-	std::string					p_index;			// Fichier index pour cette location
-	bool						p_autoindex;		// Autoindex activé ou non
-	std::string					p_uploadStore;		// Chemin pour les uploads
-	std::string					p_cgiPass;			// Chemin du binaire CGI
-	std::string					p_cgiExt;			// Extension des fichiers CGI
-	int							p_returnCode;		// Code de redirection
-	std::string					p_returnUrl;		// URL de redirection
+	std::string							p_path;			  // Chemin de la location
+	std::vector<std::string>			p_allowedMethods; // Méthodes autorisées
+	std::string							p_root;			  // Racine pour cette location
+	std::string							p_index;		  // Fichier index pour cette location
+	bool								p_autoindex;	  // Autoindex activé ou non
+	std::string							p_uploadStore;	  // Chemin pour les uploads
+	std::map<std::string, std::string>	p_cgi_pass;		  // {".php" → "/usr/bin/php-cgi", ".py" → "/usr/bin/python3", ".sh" → "/bin/bash"}
+	int									p_returnCode;	  // Code de redirection
+	std::string							p_returnUrl;	  // URL de redirection
 };
 
 #endif	// LOCATIONCONFIG_HPP

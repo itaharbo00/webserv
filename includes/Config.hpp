@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 16:16:57 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 21:18:19 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 15:49:43 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,8 +85,6 @@ private:
 	void						parseUploadStore(const std::string &value,
 									LocationConfig &locationConfig);
 	void						parseCgiPass(const std::string &value,
-									LocationConfig &locationConfig);
-	void						parseCgiExt(const std::string &value,
 									LocationConfig &locationConfig);
 	void						parseReturn(const std::string &value,
 									LocationConfig &locationConfig);

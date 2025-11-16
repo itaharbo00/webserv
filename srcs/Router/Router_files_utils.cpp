@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 14:57:41 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 20:57:00 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 19:32:07 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ std::string	Router::readFile(const std::string &filePath)
 }
 
 // Vérifie si le fichier existe
-bool	Router::fileExists(const std::string &filePath)
+bool Router::fileExists(const std::string &filePath) const
 {
 	struct stat	buffer;
 
@@ -43,7 +43,7 @@ bool	Router::fileExists(const std::string &filePath)
 }
 
 // Vérifie si le chemin correspond à un fichier régulier (pas un répertoire etc.)
-bool	Router::isRegularFile(const std::string &filePath)
+bool	Router::isRegularFile(const std::string &filePath) const
 {
 	struct stat	buffer;
 

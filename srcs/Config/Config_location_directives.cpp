@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 21:14:19 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 22:04:22 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 15:54:34 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,22 +61,22 @@ void	Config::parseUploadStore(const std::string &value, LocationConfig &location
 
 void	Config::parseCgiPass(const std::string &value, LocationConfig &locationConfig)
 {
-	std::string	cleanValue = value;
+	std::vector<std::string>	tokens = split(value, ' ');
 
-	if (cleanValue[cleanValue.length() - 1] == ';')
-		cleanValue = cleanValue.substr(0, cleanValue.length() - 1);
+	if (tokens.size() < 3)
+		throw std::runtime_error("cgi_pass directive missing extension or path");
 
-	locationConfig.setCgiPass(cleanValue);
-}
+	// Extraire l'extension et le chemin du CGI
+	std::string	extension = tokens[1];
+	std::string	cgiPath = tokens[2];
 
-void	Config::parseCgiExt(const std::string &value, LocationConfig &locationConfig)
-{
-	std::string	cleanValue = value;
-
-	if (cleanValue[cleanValue.length() - 1] == ';')
-		cleanValue = cleanValue.substr(0, cleanValue.length() - 1);
-
-	locationConfig.setCgiExt(cleanValue);
+	if (cgiPath[cgiPath.length() - 1] == ';')
+		cgiPath = cgiPath.substr(0, cgiPath.length() - 1);
+	
+	if (extension.empty() || extension[0] != '.')
+		throw std::runtime_error("CGI extension must start with a dot");
+		
+	locationConfig.addCgiPass(extension, cgiPath);
 }
 
 void	Config::parseReturn(const std::string &value, LocationConfig &locationConfig)

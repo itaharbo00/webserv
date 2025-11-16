@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 19:30:26 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 22:04:22 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 15:55:15 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,15 +73,9 @@ void	Config::directiveLocationChecker(const std::string &directive,
 	}
 	else if (directive == "cgi_pass")
 	{
-		if (tokens.size() < 2)
-			throw std::runtime_error("cgi_pass directive missing path");
-		parseCgiPass(tokens[1], locationConfig);
-	}
-	else if (directive == "cgi_ext")
-	{
-		if (tokens.size() < 2)
-			throw std::runtime_error("cgi_ext directive missing extension");
-		parseCgiExt(tokens[1], locationConfig);
+		if (tokens.size() < 3)
+			throw std::runtime_error("cgi_pass directive missing extension or path");
+		parseCgiPass(line, locationConfig);
 	}
 	else if (directive == "return")
 	{

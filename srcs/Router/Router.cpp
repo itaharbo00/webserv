@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:48 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 17:52:46 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 19:32:07 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -119,6 +119,31 @@ HttpResponse	Router::routeByMethod(const HttpRequest &request,
 {
 	std::string	method = request.getMethod();
 	std::string	uri = request.getUri();
+
+	// Séparer l'URI de la query string
+	std::string	uriPath = uri;
+	size_t		queryPos = uri.find('?');
+	if (queryPos != std::string::npos)
+		uriPath = uri.substr(0, queryPos);
+
+	// Vérifier si c'est un CGI (pour GET et POST)
+	if (method == "GET" || method == "POST")
+	{
+		if (p_serverConfig)
+		{
+			const LocationConfig	*loc = p_serverConfig->findLocation(uriPath);
+			if (loc && loc->hasCgi())
+			{
+				// Construire le chemin du fichier
+				std::string	filePath = p_root + uriPath;
+				// Extraire l'extension
+				std::string	extension = getCgiExtension(filePath);
+				// Vérifier si c'est une extension CGI
+				if (loc->isCgiExtension(extension))
+					return executeCgi(request, loc, filePath);
+			}
+		}
+	}
 
 	if (method == "GET")
 	{

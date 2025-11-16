@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 16:02:38 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 18:38:02 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 19:32:07 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,8 +26,28 @@ HttpResponse	Router::serveStaticFile(const HttpRequest &request)
 	if (!isPathSecure(uri))
 		return createErrorResponse(403, request.getHttpVersion());
 
+	// Séparer l'URI de la query string pour obtenir le chemin du fichier
+	std::string	uriPath = uri;
+	size_t		queryPos = uri.find('?');
+	if (queryPos != std::string::npos)
+		uriPath = uri.substr(0, queryPos);
+
 	// Construire le chemin complet du fichier
-	std::string	filePath = p_root + uri;
+	std::string	filePath = p_root + uriPath;
+
+	// Vérifier les CGI
+	if (p_serverConfig)
+	{
+		const LocationConfig	*location = p_serverConfig->findLocation(uriPath);
+		if (location && location->hasCgi())
+		{
+			// Extraire l'extension du fichier
+			std::string	extension = getCgiExtension(filePath);
+			// Vérifier si l'extension est gérée par le CGI
+			if (location->isCgiExtension(extension))
+				return executeCgi(request, location, filePath); // Exécuter le CGI
+		}
+	}
 
 	// Vérifier si le chemin est un répertoire
 	if (isDirectory(filePath))

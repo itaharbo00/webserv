@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:45 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 18:38:02 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 19:32:07 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,9 @@
 # include "HttpResponse.hpp"
 # include "ServerConfig.hpp"
 # include <fstream>
+# include <unistd.h>
 # include <sys/stat.h>	// stat
+# include <sys/wait.h>	// waitpid
 
 class Router
 {
@@ -31,8 +33,7 @@ public:
 	HttpResponse		route(const HttpRequest &request);
 	
 	// Générer une réponse d'erreur sans requête valide
-	HttpResponse		createErrorResponse(int statusCode,
-							const std::string &httpVersion);
+	HttpResponse		createErrorResponse(int statusCode, const std::string &httpVersion);
 
 private:
 
@@ -55,13 +56,47 @@ private:
 							const LocationConfig *location);
 	HttpResponse		handleRedirect(const HttpRequest &request,
 							const LocationConfig *location);
-	std::string			generateRedirectPage(int statusCode,
-							const std::string &locationUrl);
+	std::string			generateRedirectPage(int statusCode, const std::string &locationUrl);
+
+	// CGI env
+	void				buildBasicCgiEnv(std::vector<std::string> &env,
+							const HttpRequest &request,
+							const std::string &scriptPath) const;
+	void				buildServerCgiEnv(std::vector<std::string> &env,
+							const HttpRequest &request) const;
+	void				buildContentCgiEnv(std::vector<std::string> &env,
+							const HttpRequest &request) const;
+	void				buildHttpHeadersCgiEnv(std::vector<std::string> &env,
+							const HttpRequest &request) const;
+	char				**convertEnvToArray(const std::vector<std::string> &env) const;
+	char				**buildCgiEnv(const HttpRequest &request,
+							const LocationConfig *location, const std::string &scriptPath);
+
+	// CGI execution
+	bool				validateCgiRequest(const std::string &scriptPath,
+							const std::string &extension, const LocationConfig *location,
+							std::string &cgiPath) const;
+	bool				setupCgiPipes(int pipe_in[2], int pipe_out[2]) const;
+	void				executeCgiChild(int pipe_in[2], int pipe_out[2],
+							const std::string &cgiPath, const std::string &scriptPath,
+							char **env) const;
+	std::string			executeCgiParent(int pipe_in[2], int pipe_out[2],
+							pid_t pid, const HttpRequest &request) const;
+	void				parseCgiOutput(const std::string &cgiOutput,
+							std::string &headers, std::string &body) const;
+	HttpResponse		buildCgiResponse(const std::string &cgiHeaders,
+							const std::string &cgiBody, const HttpRequest &request) const;
+	HttpResponse		executeCgi(const HttpRequest &request,
+							const LocationConfig *location, const std::string &scriptPath);
+
+	// Utils pour le CGI
+	std::string			getCgiExtension(const std::string &filePath) const;
+	void				freeCgiEnv(char **env) const;
 
 	// Fonctions utilitaires pour la gestion des fichiers
 	std::string			readFile(const std::string &filePath);
-	bool				fileExists(const std::string &filePath);
-	bool				isRegularFile(const std::string &filePath);
+	bool				fileExists(const std::string &filePath) const;
+	bool				isRegularFile(const std::string &filePath) const;
 	bool				isDirectory(const std::string &filePath);
 	bool				isPathSecure(const std::string &uri);
 	bool				isFileTooLarge(const std::string &filePath);

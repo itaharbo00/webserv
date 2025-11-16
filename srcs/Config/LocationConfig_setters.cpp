@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 21:35:04 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 21:35:50 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 15:55:32 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,16 +42,6 @@ void	LocationConfig::setAutoindex(bool autoindex)
 void	LocationConfig::setUploadStore(const std::string &uploadStore)
 {
 	p_uploadStore = uploadStore; // Met à jour le chemin pour les uploads
-}
-
-void	LocationConfig::setCgiPass(const std::string &cgiPath)
-{
-	p_cgiPass = cgiPath; // Met à jour le chemin du binaire CGI
-}
-
-void	LocationConfig::setCgiExt(const std::string &cgiExt)
-{
-	p_cgiExt = cgiExt; // Met à jour l'extension des fichiers CGI
 }
 
 void	LocationConfig::setReturn(int code, const std::string &url)

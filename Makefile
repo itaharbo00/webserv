@@ -6,7 +6,7 @@
 #    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/31 20:03:22 by itaharbo          #+#    #+#              #
-#    Updated: 2025/11/15 18:38:02 by itaharbo         ###   ########.fr        #
+#    Updated: 2025/11/16 19:09:28 by itaharbo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -33,6 +33,9 @@ SRCS		= $(SRCDIR)/main.cpp \
 			  $(SRCDIR)/Router/Router_handlers.cpp \
 			  $(SRCDIR)/Router/Router_methods.cpp \
 			  $(SRCDIR)/Router/Router_serveStaticFile.cpp \
+			  $(SRCDIR)/Router/Router_cgi.cpp \
+			  $(SRCDIR)/Router/Router_cgi_env.cpp \
+			  $(SRCDIR)/Router/Router_cgi_execute.cpp \
 			  $(SRCDIR)/Router/Router_autoindex.cpp \
 			  $(SRCDIR)/Router/Router_error_responses.cpp \
 			  $(SRCDIR)/Router/Router_files_utils.cpp \
@@ -51,7 +54,8 @@ SRCS		= $(SRCDIR)/main.cpp \
 			  $(SRCDIR)/Config/ServerConfig_getters.cpp \
 			  $(SRCDIR)/Config/ServerConfig_setters.cpp \
 			  $(SRCDIR)/Config/LocationConfig.cpp \
-			  $(SRCDIR)/Config/LocationConfig_setters.cpp
+			  $(SRCDIR)/Config/LocationConfig_setters.cpp \
+			  $(SRCDIR)/Config/LocationConfig_getters.cpp
 
 OBJS		= $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
