@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:48 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/16 19:32:07 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 20:07:33 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -134,8 +134,30 @@ HttpResponse	Router::routeByMethod(const HttpRequest &request,
 			const LocationConfig	*loc = p_serverConfig->findLocation(uriPath);
 			if (loc && loc->hasCgi())
 			{
+				// Pour les CGI, il faut extraire le vrai chemin du script
+				// en retirant le PATH_INFO (tout après l'extension)
+				std::string	scriptPath = uriPath;
+				
+				// Chercher l'extension CGI dans l'URI
+				size_t	extPos = uriPath.find(".php");
+				if (extPos == std::string::npos)
+					extPos = uriPath.find(".py");
+				if (extPos == std::string::npos)
+					extPos = uriPath.find(".sh");
+				if (extPos == std::string::npos)
+					extPos = uriPath.find(".pl");
+				
+				// Si une extension est trouvée, couper après elle
+				if (extPos != std::string::npos)
+				{
+					// Trouver le prochain '/' après l'extension (début du PATH_INFO)
+					size_t	pathInfoStart = uriPath.find('/', extPos);
+					if (pathInfoStart != std::string::npos)
+						scriptPath = uriPath.substr(0, pathInfoStart);
+				}
+
 				// Construire le chemin du fichier
-				std::string	filePath = p_root + uriPath;
+				std::string	filePath = p_root + scriptPath;
 				// Extraire l'extension
 				std::string	extension = getCgiExtension(filePath);
 				// Vérifier si c'est une extension CGI

@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/15 15:04:18 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 17:17:09 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 20:07:33 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,14 +30,16 @@ static std::string	generateUniqueFilename(const std::string &uploadDir)
 
 HttpResponse	Router::handlePost(const HttpRequest &request, const LocationConfig *location)
 {
-	// 1. Validation Content-Length (NGINX exige ce header pour POST)
+	// 1. Validation Content-Length OU Transfer-Encoding
 	std::map<std::string, std::string> headers = request.getHeaders();
-	std::map<std::string, std::string>::const_iterator it = headers.find("Content-Length");
+	std::map<std::string, std::string>::const_iterator itLength = headers.find("Content-Length");
+	std::map<std::string, std::string>::const_iterator itTransfer = headers.find("Transfer-Encoding");
 	
-	if (it == headers.end())
+	// Exiger Content-Length OU Transfer-Encoding pour POST
+	if (itLength == headers.end() && itTransfer == headers.end())
 		return createErrorResponse(411, request.getHttpVersion()); // 411 Length Required
 
-	// 2. Récupérer le body
+	// 2. Récupérer le body (déjà dechunké si Transfer-Encoding: chunked)
 	std::string	body = request.getBody();
 
 	if (body.empty())

@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/15 18:32:37 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 21:30:07 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -440,6 +440,10 @@ void	Server::start()	// Méthode pour démarrer le serveur
 			// Parcourir les descripteurs pour vérifier lesquels ont des événements
 			for (size_t i = 0; i < p_fds.size(); ++i)
 			{
+				// Sauvegarder le fd actuel pour vérifier s'il est toujours valide
+				int current_fd = p_fds[i].fd;
+				bool client_closed = false;
+				
 				if (p_fds[i].revents & POLLIN)	// Vérifier les événements de lecture
 				{
 					// Vérifier si c'est un socket d'écoute
@@ -465,16 +469,22 @@ void	Server::start()	// Méthode pour démarrer le serveur
 						try
 						{
 							if (!handleClient(i)) // Données dispo à lire d'un client existant
+							{
+								client_closed = true;
 								--i;	// Ajuster l'index si un client a été supprimé
+							}
 						}
 						catch (const std::exception&)
 						{
 							closeClient(i);  // Utiliser closeClient() pour tout nettoyer
+							client_closed = true;
 							--i;
 						}
 					}
 				}
-				else if (p_fds[i].revents & POLLOUT)	// Socket prêt pour écriture
+				
+				// Ne traiter POLLOUT que si le client n'a pas été fermé ET l'index est toujours valide
+				if (!client_closed && i < p_fds.size() && p_fds[i].fd == current_fd && (p_fds[i].revents & POLLOUT))	// Socket prêt pour écriture
 				{
 					try
 					{

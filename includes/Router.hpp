@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:45 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/16 19:32:07 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 20:07:33 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,8 @@
 # include <unistd.h>
 # include <sys/stat.h>	// stat
 # include <sys/wait.h>	// waitpid
+# include <signal.h>	// kill, SIGKILL
+# include <ctime>		// time()
 
 class Router
 {

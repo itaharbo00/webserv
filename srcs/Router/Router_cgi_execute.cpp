@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/16 16:30:42 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/16 18:59:37 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 21:30:07 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,14 +69,16 @@ void	Router::executeCgiChild(int pipe_in[2], int pipe_out[2],
 	// Préparer les arguments pour execve
 	char *args[3];
 	args[0] = const_cast<char *>(cgiPath.c_str());
-	args[1] = const_cast<char *>(scriptPath.c_str());
+	args[1] = const_cast<char *>(scriptPath.c_str()); // Chemin absolu du script
 	args[2] = NULL;
 
 	//Exécuter le CGI
+	std::cout << "[CGI] Lancement du script: " << scriptPath << std::endl;
 	execve(cgiPath.c_str(), args, env);
 
 	// Si execve échoue, afficher une erreur et quitter
-	std::cerr << "execve failed" << std::strerror(errno) << std::endl;
+	std::cerr << "[CGI] execve failed: " << std::strerror(errno) << " sur " << scriptPath << std::endl;
+	system((std::string("ls -l ") + scriptPath).c_str());
 	exit(1);
 }
 
@@ -103,20 +105,54 @@ std::string	Router::executeCgiParent(int pipe_in[2], int pipe_out[2],
 
 	close(pipe_in[1]); // Fermer l'écriture après avoir envoyé le corps
 
-	// Lire la sortie du CGI
+	// Lire la sortie du CGI avec timeout
 	std::string	cgiOutput;
 	char		buffer[4096];
 	ssize_t		bytesRead;
+	time_t		start_time = std::time(NULL);
+	const int	CGI_TIMEOUT = 30; // 30 secondes timeout pour CGI
 
-	// Ajouter les données lues à la sortie CGI jusqu'à la fin
-	while ((bytesRead = read(pipe_out[0], buffer, sizeof(buffer))) > 0)
-		cgiOutput.append(buffer, bytesRead);
+	// Lire avec timeout
+	while (true)
+	{
+		// Vérifier le timeout
+		if (std::time(NULL) - start_time > CGI_TIMEOUT)
+		{
+			kill(pid, SIGKILL); // Tuer le processus CGI si timeout
+			waitpid(pid, NULL, 0); // Nettoyer le processus zombie
+			close(pipe_out[0]);
+			throw std::runtime_error("CGI timeout: process killed after 30 seconds");
+		}
+
+		// Essayer de lire (non-bloquant serait mieux, mais on vérifie le temps)
+		bytesRead = read(pipe_out[0], buffer, sizeof(buffer));
+		if (bytesRead > 0)
+			cgiOutput.append(buffer, bytesRead);
+		else if (bytesRead == 0)
+			break; // EOF
+		else if (errno != EAGAIN && errno != EWOULDBLOCK)
+			break; // Erreur
+	}
 
 	close(pipe_out[0]); // Fermer la lecture après avoir tout lu
 
-	// Attendre la fin du processus CGI
+	// Attendre la fin du processus CGI (non-bloquant)
 	int	status;
-	waitpid(pid, &status, 0); // Attendre la fin du processus CGI
+	int	wait_result = waitpid(pid, &status, WNOHANG);
+	
+	// Si le processus n'est pas encore terminé, attendre un peu plus
+	if (wait_result == 0)
+	{
+		// Donner encore 1 seconde
+		sleep(1);
+		wait_result = waitpid(pid, &status, WNOHANG);
+		if (wait_result == 0)
+		{
+			// Toujours pas terminé, tuer le processus
+			kill(pid, SIGKILL);
+			waitpid(pid, &status, 0);
+		}
+	}
 
 	// Vérifier le statut de sortie du processus CGI
 	if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
@@ -254,7 +290,18 @@ HttpResponse	Router::executeCgi(const HttpRequest &request,
 	else
 	{
 		// Envoyer le body de la requête au CGI et lire la sortie
-		std::string	cgiOutput = executeCgiParent(pipe_in, pipe_out, pid, request);
+		std::string	cgiOutput;
+		try
+		{
+			cgiOutput = executeCgiParent(pipe_in, pipe_out, pid, request);
+		}
+		catch (const std::exception &e)
+		{
+			// Timeout ou autre erreur CGI
+			freeCgiEnv(env);
+			std::cerr << "CGI error: " << e.what() << std::endl;
+			return createErrorResponse(500, request.getHttpVersion());
+		}
 
 		// Libérer la mémoire de l'environnement
 		freeCgiEnv(env);

@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/16 16:30:45 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/16 19:32:07 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/16 20:07:33 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,28 +18,63 @@ void	Router::buildBasicCgiEnv(std::vector<std::string> &env,
 {
 	// REQUEST_METHOD (GET, POST, DELETE)
 	env.push_back("REQUEST_METHOD=" + request.getMethod());
-	// SCRIPT_NAME (chemin du script dans l'URL)
-	env.push_back("SERVER_NAME=" + request.getUri());
-	// SCRIPT_FILENAME (chemin absolu du script)
+
+	// Extraire l'URI et séparer la query string
+	std::string	uri = request.getUri();
+	std::string	uriPath = uri;
+	size_t		queryPos = uri.find('?');
+	if (queryPos != std::string::npos)
+		uriPath = uri.substr(0, queryPos);
+
+	// SCRIPT_NAME (chemin du script dans l'URL, sans PATH_INFO ni query)
+	// Ex: /cgi-bin/script.php/extra → SCRIPT_NAME=/cgi-bin/script.php
+	std::string	scriptName = uriPath;
+	
+	// Trouver où se termine le nom du script
+	// Chercher l'extension du script dans l'URI
+	size_t	extPos = uriPath.find(".php");
+	if (extPos == std::string::npos)
+		extPos = uriPath.find(".py");
+	if (extPos == std::string::npos)
+		extPos = uriPath.find(".sh");
+	if (extPos == std::string::npos)
+		extPos = uriPath.find(".pl");
+	
+	// PATH_INFO: tout ce qui vient après le nom du script
+	std::string	pathInfo;
+	if (extPos != std::string::npos)
+	{
+		// Trouver la fin de l'extension (3 ou 4 caractères)
+		size_t	scriptEnd = uriPath.find('/', extPos);
+		if (scriptEnd != std::string::npos)
+		{
+			// Il y a du PATH_INFO
+			scriptName = uriPath.substr(0, scriptEnd);
+			pathInfo = uriPath.substr(scriptEnd);
+			env.push_back("PATH_INFO=" + pathInfo);
+		}
+		else
+		{
+			// Pas de PATH_INFO
+			scriptName = uriPath;
+			env.push_back("PATH_INFO=");
+		}
+	}
+	else
+	{
+		env.push_back("PATH_INFO=");
+	}
+
+	env.push_back("SCRIPT_NAME=" + scriptName);
+
+	// SCRIPT_FILENAME (chemin absolu du script sur le système de fichiers)
 	env.push_back("SCRIPT_FILENAME=" + scriptPath);
 
 	// QUERY_STRING (partie après '?' dans l'URL)
-	std::string	uri = request.getUri();
-	size_t		queryPos = uri.find('?');
 	if (queryPos != std::string::npos)
 		env.push_back("QUERY_STRING=" + uri.substr(queryPos + 1));
 	else
 		env.push_back("QUERY_STRING=");
-
-	//PATH_INFO (partie de l'URI après le script)
-	// Ex: /cgi-bin/script.cgi/extra/path -> PATH_INFO=/extra/path
-	size_t	scriptEndPos = uri.find('/', 1);
-	if (scriptEndPos != std::string::npos)
-	{
-		size_t	pathInfoPos = uri.find('/', scriptEndPos + 1);
-		if (pathInfoPos != std::string::npos)
-			env.push_back("PATH_INFO=" + uri.substr(pathInfoPos));
-	}
 }
 
 // Construire les variables d'environnement CGI liées au serveur
