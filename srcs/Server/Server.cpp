@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/16 21:30:07 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/17 19:21:12 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ Server::Server(const std::string &, const std::string &port)
 			throw std::runtime_error("Invalid port number (must be 1-65535)");
 		
 		// Créer un ServerConfig par défaut
-		ServerConfig defaultConfig;
+		ServerConfig	defaultConfig;
 		defaultConfig.setListen(port_num);
 		defaultConfig.setServerName("localhost");
 		defaultConfig.setRoot("./www");
@@ -296,7 +296,8 @@ bool	Server::handleClient(size_t index)	// Gérer la communication avec un clien
 				{
 					// Envoi partiel : mettre le reste en buffer et attendre POLLOUT
 					std::cerr << "[" << client_fd << "] Partial send: " 
-							  << sent << "/" << response_str.length() << " bytes (buffering remainder)" << std::endl;
+							  << sent << "/" << response_str.length()
+							  << " bytes (buffering remainder)" << std::endl;
 					p_pending_responses[client_fd] = response_str.substr(sent);
 					p_bytes_sent[client_fd] = sent;
 					p_fds[index].events = POLLOUT;
@@ -416,7 +417,7 @@ void	Server::start()	// Méthode pour démarrer le serveur
 	for (size_t i = 0; i < p_socket_fds.size(); ++i)
 		setNonBlocking(p_socket_fds[i]);
 	
-	initServerPollfds();          // Initialiser les pollfds des serveurs
+	initServerPollfds();	// Initialiser les pollfds des serveurs
 
 	std::cout << "Waiting for connections..." << std::endl;
 
@@ -484,7 +485,8 @@ void	Server::start()	// Méthode pour démarrer le serveur
 				}
 				
 				// Ne traiter POLLOUT que si le client n'a pas été fermé ET l'index est toujours valide
-				if (!client_closed && i < p_fds.size() && p_fds[i].fd == current_fd && (p_fds[i].revents & POLLOUT))	// Socket prêt pour écriture
+				if (!client_closed && i < p_fds.size() &&
+					p_fds[i].fd == current_fd && (p_fds[i].revents & POLLOUT))	// Socket prêt pour écriture
 				{
 					try
 					{
@@ -516,28 +518,28 @@ void	Server::start()	// Méthode pour démarrer le serveur
 const ServerConfig*	Server::selectServerConfig(int client_fd, const HttpRequest &request) const
 {
 	// Trouver le server_fd d'origine pour ce client
-	std::map<int, int>::const_iterator it = p_client_to_server_fd.find(client_fd);
+	std::map<int, int>::const_iterator	it = p_client_to_server_fd.find(client_fd);
 	if (it == p_client_to_server_fd.end())
 	{
 		// Fallback: retourner le premier ServerConfig si on ne trouve pas le mapping
 		return &p_serverConfigs[0];
 	}
 	
-	int server_fd = it->second;
+	int	server_fd = it->second;
 	
 	// Récupérer le ServerConfig par défaut pour ce port
-	std::map<int, const ServerConfig*>::const_iterator configIt = p_fd_to_config.find(server_fd);
+	std::map<int, const ServerConfig*>::const_iterator	configIt = p_fd_to_config.find(server_fd);
 	if (configIt == p_fd_to_config.end())
 	{
 		// Fallback: retourner le premier ServerConfig
 		return &p_serverConfigs[0];
 	}
 	
-	const ServerConfig* defaultConfig = configIt->second;
-	int port = defaultConfig->getListen();
+	const ServerConfig*	defaultConfig = configIt->second;
+	int					port = defaultConfig->getListen();
 	
 	// Essayer de matcher le Host header avec les server_names sur le même port
-	std::string hostHeader = request.getHeader("Host");
+	std::string			hostHeader = request.getHeader("Host");
 	if (!hostHeader.empty())
 	{
 		// Extraire le hostname (enlever le port si présent)

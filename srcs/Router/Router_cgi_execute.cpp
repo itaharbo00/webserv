@@ -6,11 +6,12 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/16 16:30:42 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/16 21:30:07 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/18 17:23:55 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Router.hpp"
+#include <fcntl.h> // fcntl, O_NONBLOCK
 
 // Valider la requête CGI avant l'exécution
 bool	Router::validateCgiRequest(const std::string &scriptPath,
@@ -73,13 +74,20 @@ void	Router::executeCgiChild(int pipe_in[2], int pipe_out[2],
 	args[2] = NULL;
 
 	//Exécuter le CGI
-	std::cout << "[CGI] Lancement du script: " << scriptPath << std::endl;
 	execve(cgiPath.c_str(), args, env);
 
-	// Si execve échoue, afficher une erreur et quitter
-	std::cerr << "[CGI] execve failed: " << std::strerror(errno) << " sur " << scriptPath << std::endl;
-	system((std::string("ls -l ") + scriptPath).c_str());
-	exit(1);
+	// Vérifier si le binaire CGI est exécutable
+	struct stat	st;
+	if (stat(cgiPath.c_str(), &st) == 0)
+	{
+		if (!(st.st_mode & S_IXUSR))
+			write(STDERR_FILENO, "[CGI] CGI binary is not executable\n", 36);
+	}
+	else
+	{
+		write(STDERR_FILENO, "[CGI] CGI binary not found\n", 27);
+	}
+	_exit(1); // Quitter le processus fils en cas d'erreur
 }
 
 // Gérer l'exécution du CGI dans le processus parent
@@ -89,17 +97,34 @@ std::string	Router::executeCgiParent(int pipe_in[2], int pipe_out[2],
 	close(pipe_in[0]); // Fermer lecture du pipe d'entrée
 	close(pipe_out[1]); // Fermer écriture du pipe de sortie
 
+	int	flags = fcntl(pipe_out[0], F_GETFL, 0);
+	if (flags != -1)
+		fcntl(pipe_out[0], F_SETFL, flags | O_NONBLOCK); // Rendre non-bloquant
+
 	std::string	body = request.getBody();
 	if (!body.empty())
 	{
-		// Écrire le corps de la requête dans le pipe d'entrée du CGI
-		ssize_t written = write(pipe_in[1], body.c_str(), body.length());
-		if (written < 0)
+		const char	*buf = body.c_str();
+		size_t		total = body.length();
+		size_t		sent = 0;
+		while (sent < total)
 		{
-			close(pipe_in[1]);
-			close(pipe_out[0]);
-			throw std::runtime_error("Failed to write to CGI stdin: "
-				+ std::string(std::strerror(errno)));
+			// Écrire dans le pipe d'entrée
+			ssize_t	written = write(pipe_in[1], buf + sent, total - sent);
+			if (written > 0)
+				sent += static_cast<size_t>(written); // Mettre à jour le nombre d'octets envoyés
+			else if (written == -1 && (errno == EINTR)) // Interruption par un signal
+			{
+				usleep(1000); // Attendre un peu avant de réessayer
+				continue; // Retry on interrupt
+			}
+			else
+			{
+				// Erreur d'écriture
+				close(pipe_in[1]);
+				close(pipe_out[0]);
+				throw std::runtime_error("Failed to write to CGI stdin");
+			}
 		}
 	}
 
@@ -130,8 +155,19 @@ std::string	Router::executeCgiParent(int pipe_in[2], int pipe_out[2],
 			cgiOutput.append(buffer, bytesRead);
 		else if (bytesRead == 0)
 			break; // EOF
-		else if (errno != EAGAIN && errno != EWOULDBLOCK)
-			break; // Erreur
+		else if (bytesRead == -1)
+		{
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+			{
+				// Pas de données disponibles, attendre un peu
+				usleep(100000); // 100 ms
+				continue;
+			}
+			else if (errno == EINTR)
+				continue;
+			else
+				break; // Autre erreur, sortir
+		}
 	}
 
 	close(pipe_out[0]); // Fermer la lecture après avoir tout lu

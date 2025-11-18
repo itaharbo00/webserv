@@ -6,7 +6,7 @@
 /*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 19:30:00 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 21:09:45 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/17 20:32:33 by itaharbo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,7 +87,7 @@ bool	Server::handleClientWrite(size_t index)
 		else
 		{
 			// Pas de requête associée, repasser en mode lecture
-			p_fds[index].events = POLLIN;
+			closeClient(index);
 			return true;
 		}
 	}
