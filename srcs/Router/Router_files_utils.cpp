@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Router_files_utils.cpp                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: lybey <lybey@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 14:57:41 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/16 19:32:07 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/22 17:14:25 by lybey            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -143,5 +143,5 @@ std::string	Router::getContentType(const std::string &filePath)
 	if (extension == ".mp3")
 		return "audio/mpeg";
 
-	return "application/octet-stream"; // Type par défaut
+	return "application/octet-stream"; // Tp_errorype par défaut
 }
