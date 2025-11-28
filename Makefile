@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+         #
+#    By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/31 20:03:22 by itaharbo          #+#    #+#              #
-#    Updated: 2025/11/16 19:09:28 by itaharbo         ###   ########.fr        #
+#    Updated: 2025/11/26 17:49:23 by wlarbi-a         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -31,14 +31,17 @@ SRCS		= $(SRCDIR)/main.cpp \
 			  $(SRCDIR)/HttpResponse/HttpResponse.cpp \
 			  $(SRCDIR)/Router/Router.cpp \
 			  $(SRCDIR)/Router/Router_handlers.cpp \
-			  $(SRCDIR)/Router/Router_methods.cpp \
-			  $(SRCDIR)/Router/Router_serveStaticFile.cpp \
-			  $(SRCDIR)/Router/Router_cgi.cpp \
-			  $(SRCDIR)/Router/Router_cgi_env.cpp \
-			  $(SRCDIR)/Router/Router_cgi_execute.cpp \
-			  $(SRCDIR)/Router/Router_autoindex.cpp \
+			  $(SRCDIR)/Router/GET/RouterGET.cpp \
+			  $(SRCDIR)/Router/GET/Router_serveStaticFile.cpp \
+			  $(SRCDIR)/Router/GET/Router_autoindex.cpp \
+			  $(SRCDIR)/Router/GET/Router_files_utils.cpp \
+			  $(SRCDIR)/Router/POST/RouterPOST.cpp \
+			  $(SRCDIR)/Router/POST/Router_methods.cpp \
+			  $(SRCDIR)/Router/CGI/RouterCGI.cpp \
+			  $(SRCDIR)/Router/CGI/Router_cgi.cpp \
+			  $(SRCDIR)/Router/CGI/Router_cgi_env.cpp \
+			  $(SRCDIR)/Router/CGI/Router_cgi_execute.cpp \
 			  $(SRCDIR)/Router/Router_error_responses.cpp \
-			  $(SRCDIR)/Router/Router_files_utils.cpp \
 			  $(SRCDIR)/Router/Router_pages.cpp \
 			  $(SRCDIR)/Router/Router_pages_2xx.cpp \
 			  $(SRCDIR)/Router/Router_pages_3xx.cpp \

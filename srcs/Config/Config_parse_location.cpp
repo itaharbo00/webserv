@@ -3,18 +3,18 @@
 /*                                                        :::      ::::::::   */
 /*   Config_parse_location.cpp                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 19:30:26 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/16 15:55:15 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/11/24 13:38:13 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Config.hpp"
 
-void	Config::parseLocationBlock(std::ifstream &file, LocationConfig &locationConfig)
+void Config::parseLocationBlock(std::ifstream &file, LocationConfig &locationConfig)
 {
-	std::string	line;
+	std::string line;
 
 	// Lire le bloc location ligne par ligne
 	while (std::getline(file, line))
@@ -28,12 +28,12 @@ void	Config::parseLocationBlock(std::ifstream &file, LocationConfig &locationCon
 			break; // Fin du bloc location
 
 		// Tokenizer la ligne (ex : "autoindex on;" -> ["autoindex", "on;"])
-		std::vector<std::string>	tokens = split(line, ' ');
+		std::vector<std::string> tokens = split(line, ' ');
 		if (tokens.empty())
 			continue;
 
 		// Extraire la directive principale
-		std::string	directive = tokens[0];
+		std::string directive = tokens[0];
 
 		// Enlever ';' si présent
 		if (directive[directive.length() - 1] == ';')
@@ -49,9 +49,9 @@ void	Config::parseLocationBlock(std::ifstream &file, LocationConfig &locationCon
 	}
 }
 
-void	Config::directiveLocationChecker(const std::string &directive,
-			const std::vector<std::string> &tokens, std::string line,
-			LocationConfig &locationConfig)
+void Config::directiveLocationChecker(const std::string &directive,
+									  const std::vector<std::string> &tokens, std::string line,
+									  LocationConfig &locationConfig)
 {
 	if (directive == "allow_methods")
 	{
@@ -64,6 +64,12 @@ void	Config::directiveLocationChecker(const std::string &directive,
 		if (tokens.size() < 2)
 			throw std::runtime_error("autoindex directive missing value");
 		parseAutoindex(tokens[1], locationConfig);
+	}
+	else if (directive == "index")
+	{
+		if (tokens.size() < 2)
+			throw std::runtime_error("index directive missing file");
+		parseLocationIndex(tokens[1], locationConfig);
 	}
 	else if (directive == "upload_store")
 	{

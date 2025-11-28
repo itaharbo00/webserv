@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Router.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lybey <lybey@student.42.fr>                +#+  +:+       +#+        */
+/*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:48 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/22 17:12:27 by lybey            ###   ########.fr       */
+/*   Updated: 2025/11/22 18:41:37 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,14 +75,7 @@ HttpResponse	Router::routeWithoutConfig(const HttpRequest &request)
 
 		if (method == "GET")
 		{
-			if (uri == "/")
-				return handleHomePage(request);
-			else if (uri == "/about")
-				return handleAboutPage(request);
-			else if (uri == "/index.html")
-				return handleHomePage(request); // Rediriger vers la page d'accueil
-			else
-				return serveStaticFile(request);  // ← Essayer de servir un fichier
+			return serveStaticFile(request);  // ← Essayer de servir un fichier
 		}
 		else if (method == "POST")
 			return handlePost(request, NULL);
@@ -169,14 +162,7 @@ HttpResponse	Router::routeByMethod(const HttpRequest &request,
 
 	if (method == "GET")
 	{
-		if (uri == "/")
-			return handleHomePage(request);
-		else if (uri == "/about")
-			return handleAboutPage(request);
-		else if (uri == "/index.html")
-			return handleHomePage(request); // Rediriger vers la page d'accueil
-		else
-			return serveStaticFile(request);  // ← Essayer de servir un fichier
+		return serveStaticFile(request);  // ← Essayer de servir un fichier
 	}
 	else if (method == "POST")
 		return handlePost(request, location);
