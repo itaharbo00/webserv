@@ -3,21 +3,21 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest_checkers.cpp                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 17:56:43 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/16 21:30:07 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/12/06 18:38:13 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HttpRequest.hpp"
 
 // Fonction pour décoder une URL (convertir %XX en caractère)
-std::string	HttpRequest::urlDecode(const std::string &str)
+std::string HttpRequest::urlDecode(const std::string &str)
 {
 	std::string result;
 	result.reserve(str.length());
-	
+
 	for (size_t i = 0; i < str.length(); ++i)
 	{
 		if (str[i] == '%' && i + 2 < str.length())
@@ -26,7 +26,7 @@ std::string	HttpRequest::urlDecode(const std::string &str)
 			std::string hex = str.substr(i + 1, 2);
 			char *endptr;
 			long value = strtol(hex.c_str(), &endptr, 16);
-			
+
 			// Vérifier que la conversion a réussi
 			if (endptr == hex.c_str() + 2)
 			{
@@ -49,15 +49,15 @@ std::string	HttpRequest::urlDecode(const std::string &str)
 			result += str[i];
 		}
 	}
-	
+
 	return result;
 }
 
 // Trim les espaces en début et fin de chaîne
-void	HttpRequest::trimString(std::string &str)
+void HttpRequest::trimString(std::string &str)
 {
-	size_t	start = str.find_first_not_of(" \t\r\n");
-	size_t	end = str.find_last_not_of(" \t\r\n");
+	size_t start = str.find_first_not_of(" \t\r\n");
+	size_t end = str.find_last_not_of(" \t\r\n");
 
 	if (start == std::string::npos || end == std::string::npos)
 		str = "";
@@ -65,7 +65,7 @@ void	HttpRequest::trimString(std::string &str)
 		str = str.substr(start, end - start + 1);
 }
 
-void	HttpRequest::validateRequestLine()
+void HttpRequest::validateRequestLine()
 {
 	// Valider les composants de la requête
 	if (p_method.empty())
@@ -83,7 +83,7 @@ void	HttpRequest::validateRequestLine()
 		p_closeConnection = false;
 
 	// Vérifier que la méthode est valide
-	if (p_method != "GET" && p_method != "POST" && p_method != "DELETE")
+	if (p_method != "GET" && p_method != "POST" && p_method != "DELETE" && p_method != "HEAD")
 		throw std::runtime_error("Unsupported HTTP method: " + p_method);
 
 	// Vérifier que l'URI commence par '/' ou est vide
@@ -92,7 +92,7 @@ void	HttpRequest::validateRequestLine()
 
 	// Décoder l'URL pour détecter les path traversal encodés (%2e%2e, etc.)
 	std::string decodedUri = urlDecode(p_uri);
-	
+
 	// Vérifier directory traversal (sur l'URI décodée)
 	if (decodedUri.find("..") != std::string::npos)
 		throw std::runtime_error("Directory traversal attempt in URI: " + p_uri);
@@ -104,15 +104,15 @@ void	HttpRequest::validateRequestLine()
 	// Vérifier caractères invalides
 	for (size_t i = 0; i < p_uri.length(); ++i)
 	{
-		unsigned char	c = static_cast<unsigned char>(p_uri[i]);
+		unsigned char c = static_cast<unsigned char>(p_uri[i]);
 		// Bloquer caractères de contrôle
-		if (c < 32 || c == 127)  // Caractères ASCII non-imprimables
+		if (c < 32 || c == 127) // Caractères ASCII non-imprimables
 			throw std::runtime_error("Invalid character in URI");
 	}
 }
 
 // Validate un header critique spécifique
-void	HttpRequest::validateCriticalHeader(const std::string &key, const std::string &value)
+void HttpRequest::validateCriticalHeader(const std::string &key, const std::string &value)
 {
 	if (key == "Content-Length")
 	{
@@ -126,20 +126,20 @@ void	HttpRequest::validateCriticalHeader(const std::string &key, const std::stri
 		}
 
 		// Vérifier que la valeur n'est pas déraisonnablement grande
-		std::istringstream	iss(value);
-		long				content_length;
+		std::istringstream iss(value);
+		long content_length;
 		iss >> content_length;
 		if (content_length < 0 || content_length > MAX_REQUEST_SIZE) // Limite arbitraire de 10MB
 			throw std::runtime_error("Unreasonable Content-Length value: " + value);
 	}
 	else if (key == "Host" && value.empty())
-			throw std::runtime_error("Empty Host header");
+		throw std::runtime_error("Empty Host header");
 	else if (key == "Transfer-Encoding" && value != "chunked" && value != "identity")
-			throw std::runtime_error("Unsupported Transfer-Encoding: " + value);
+		throw std::runtime_error("Unsupported Transfer-Encoding: " + value);
 }
 
 // Gérer les headers en double
-void	HttpRequest::handleDuplicateHeaders(const std::string &key, const std::string &value)
+void HttpRequest::handleDuplicateHeaders(const std::string &key, const std::string &value)
 {
 	// Gestion spéciale de Connection : met à jour p_closeConnection
 	if (key == "Connection")
@@ -166,8 +166,7 @@ void	HttpRequest::handleDuplicateHeaders(const std::string &key, const std::stri
 	}
 
 	// Pour les headers critiques, rejeter les duplicatas
-	if (key == "Content-Length" || key == "Host" || key == "Transfer-Encoding"
-		|| key == "Content-Type")
+	if (key == "Content-Length" || key == "Host" || key == "Transfer-Encoding" || key == "Content-Type")
 	{
 		if (p_headers.find(key) != p_headers.end())
 			throw std::runtime_error("Duplicate critical header: " + key);
@@ -175,10 +174,9 @@ void	HttpRequest::handleDuplicateHeaders(const std::string &key, const std::stri
 	}
 	// Pour certains headers, concaténer les valeurs avec ", "
 	// Note: Cookie est géré au-dessus, donc retiré de cette liste
-	else if (key == "Accept" || key == "Cache-Control"
-		|| key == "Accept-Encoding" || key == "Accept-Language")
+	else if (key == "Accept" || key == "Cache-Control" || key == "Accept-Encoding" || key == "Accept-Language")
 	{
-		std::map<std::string, std::string>::iterator	it = p_headers.find(key);
+		std::map<std::string, std::string>::iterator it = p_headers.find(key);
 		if (it != p_headers.end())
 			it->second += ", " + value;
 		else

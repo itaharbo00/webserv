@@ -3,22 +3,22 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest_parsing.cpp                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/11 20:34:27 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/13 01:10:51 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/12/06 18:38:14 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HttpRequest.hpp"
 
 // Parse la ligne de requête (Request Line)
-void	HttpRequest::parseRequestLine(const std::string &line)
+void HttpRequest::parseRequestLine(const std::string &line)
 {
 	if (line.empty() || line == "\r" || line == "\n")
 		throw std::runtime_error("Empty request line");
 
-	std::istringstream	iss(line);
+	std::istringstream iss(line);
 
 	// Extraire méthode, URI et version HTTP
 	if (!(iss >> p_method >> p_uri >> p_http_version))
@@ -29,8 +29,8 @@ void	HttpRequest::parseRequestLine(const std::string &line)
 	trimString(p_http_version);
 
 	// Enlever \r final
-	if (!p_http_version.empty() && 
-	    p_http_version[p_http_version.length() - 1] == '\r')
+	if (!p_http_version.empty() &&
+		p_http_version[p_http_version.length() - 1] == '\r')
 	{
 		p_http_version.erase(p_http_version.length() - 1);
 	}
@@ -39,15 +39,15 @@ void	HttpRequest::parseRequestLine(const std::string &line)
 }
 
 // Parse une ligne d'en-tête (Header Line)
-void	HttpRequest::parseHeaderLine(const std::string &line)
+void HttpRequest::parseHeaderLine(const std::string &line)
 {
-	size_t	colon_pos = line.find(':');	// Trouver le séparateur clé:valeur
+	size_t colon_pos = line.find(':'); // Trouver le séparateur clé:valeur
 	if (colon_pos == std::string::npos)
 		throw std::runtime_error("Malformed header line: " + line);
 
 	// Séparer clé et valeur
-	std::string	key = line.substr(0, colon_pos);
-	std::string	value = line.substr(colon_pos + 1);
+	std::string key = line.substr(0, colon_pos);
+	std::string value = line.substr(colon_pos + 1);
 
 	trimString(key);
 	trimString(value);
@@ -61,9 +61,9 @@ void	HttpRequest::parseHeaderLine(const std::string &line)
 
 	for (size_t i = 0; i < key.length(); ++i)
 	{
-		unsigned char	c = static_cast<unsigned char>(key[i]);
+		unsigned char c = static_cast<unsigned char>(key[i]);
 		// Bloquer caractères de contrôle dans la clé
-		if (c < 33 || c == 127)  // Caractères ASCII non-imprimables et espace
+		if (c < 33 || c == 127) // Caractères ASCII non-imprimables et espace
 			throw std::runtime_error("Invalid character in header key: " + key);
 	}
 
@@ -71,11 +71,11 @@ void	HttpRequest::parseHeaderLine(const std::string &line)
 	handleDuplicateHeaders(key, value); // Gérer les headers en double si nécessaire
 }
 
-void	HttpRequest::parseBody(std::istringstream &stream)
+void HttpRequest::parseBody(std::istringstream &stream)
 {
 	// Valider les combinaisons de headers
-	if ((p_method == "GET" || p_method == "DELETE") && p_headers.count("Content-Length"))
-		throw std::runtime_error("Content-Length not allowed for GET/DELETE requests");
+	if ((p_method == "GET" || p_method == "DELETE" || p_method == "HEAD") && p_headers.count("Content-Length"))
+		throw std::runtime_error("Content-Length not allowed for GET/DELETE/HEAD requests");
 
 	// Gérer le cas où les deux headers sont présents
 	// RFC 9112 Section 6.3
@@ -104,17 +104,16 @@ void	HttpRequest::parseBody(std::istringstream &stream)
 		contentLengthBody(stream);
 }
 
-
 // Parse l'en-tête Cookie selon le format : name1=value1; name2=value2
 // Format attendu : Les cookies sont séparés par "; "
 // Les noms et valeurs sont automatiquement trimmés (espaces supprimés)
 // Limitations actuelles :
 //   - Pas de validation stricte des caractères (permissif)
 //   - Les cookies malformés (sans '=') sont ignorés silencieusement
-void	HttpRequest::parseCookies(const std::string &cookieHeader)
+void HttpRequest::parseCookies(const std::string &cookieHeader)
 {
-	std::stringstream	ss(cookieHeader);
-	std::string			pair;
+	std::stringstream ss(cookieHeader);
+	std::string pair;
 
 	// RFC-like validation: cookie-name should be a token (no CTLs or separators).
 	// We implement a conservative validation: allow alphanum and a small set of symbols.
@@ -122,15 +121,15 @@ void	HttpRequest::parseCookies(const std::string &cookieHeader)
 
 	while (std::getline(ss, pair, ';'))
 	{
-		size_t	eq_pos = pair.find('=');
+		size_t eq_pos = pair.find('=');
 		if (eq_pos == std::string::npos)
 		{
 			// Cookie malformé (pas de '=') -> ignorer
 			continue;
 		}
 
-		std::string	key = pair.substr(0, eq_pos);
-		std::string	value = pair.substr(eq_pos + 1);
+		std::string key = pair.substr(0, eq_pos);
+		std::string value = pair.substr(eq_pos + 1);
 		trimString(key);
 		trimString(value);
 

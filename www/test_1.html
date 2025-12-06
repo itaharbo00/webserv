@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test HTTP Methods</title>
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: 40px auto; }
+        h1 { text-align: center; }
+        .section {
+            border: 1px solid #ccc; padding: 20px; border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        button { padding: 8px 14px; cursor: pointer; }
+        input, textarea { width: 100%; padding: 6px; margin-top: 5px; }
+        pre { background: #eee; padding: 10px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+<h1>Test HTTP Methods</h1>
+
+<!-- GET -->
+<div class="section">
+    <h2>GET</h2>
+    <p>Tester un GET sur : <code>/test.txt</code></p>
+    <button onclick="testGET()">Send GET</button>
+    <pre id="get_result"></pre>
+</div>
+
+<!-- POST text -->
+<div class="section">
+    <h2>POST (texte)</h2>
+    <textarea id="post_body" placeholder="Texte du body..."></textarea>
+    <button onclick="testPOSTtext()">Send POST (text/plain)</button>
+    <pre id="post_result"></pre>
+</div>
+
+<!-- POST file upload -->
+<div class="section">
+    <h2>POST (upload de fichier)</h2>
+    <p>Envoi vers : <code>/upload</code></p>
+
+    <input type="file" id="file_input">
+    <button onclick="testPOSTfile()">Uploader le fichier</button>
+
+    <pre id="upload_result"></pre>
+</div>
+
+<!-- DELETE -->
+<div class="section">
+    <h2>DELETE</h2>
+    <input id="delete_path" placeholder="/upload/fichier.txt">
+    <button onclick="testDELETE()">Send DELETE</button>
+    <pre id="delete_result"></pre>
+</div>
+
+
+<script>
+function testGET() {
+    fetch("/test.txt")
+        .then(res => res.text().then(t => {
+            document.getElementById("get_result").textContent =
+                "Status: " + res.status + "\n\n" + t;
+        }))
+        .catch(err => document.getElementById("get_result").textContent = err);
+}
+
+function testPOSTtext() {
+    fetch("/upload", {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: document.getElementById("post_body").value
+    })
+    .then(res => res.text().then(t => {
+        document.getElementById("post_result").textContent =
+            "Status: " + res.status + "\n\n" + t;
+    }))
+    .catch(err => document.getElementById("post_result").textContent = err);
+}
+
+function testPOSTfile() {
+    const file = document.getElementById("file_input").files[0];
+    if (!file) {
+        document.getElementById("upload_result").textContent =
+            "Aucun fichier sélectionné.";
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    fetch("/upload", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.text().then(t => {
+        document.getElementById("upload_result").textContent =
+            "Status: " + res.status + "\n\n" + t;
+    }))
+    .catch(err => document.getElementById("upload_result").textContent = err);
+}
+
+function testDELETE() {
+    let path = document.getElementById("delete_path").value;
+    fetch(path, { method: "DELETE" })
+        .then(res => res.text().then(t => {
+            document.getElementById("delete_result").textContent =
+                "Status: " + res.status + "\n\n" + t;
+        }))
+        .catch(err => document.getElementById("delete_result").textContent = err);
+}
+</script>
+
+</body>
+</html>

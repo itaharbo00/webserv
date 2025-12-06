@@ -6,7 +6,7 @@
 /*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 21:14:19 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/24 13:38:13 by wlarbi-a         ###   ########.fr       */
+/*   Updated: 2025/12/06 18:38:13 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ void Config::parseAllowedMethods(const std::string &value, LocationConfig &locat
 			method = method.substr(0, method.length() - 1);
 
 		// Vérifier si la méthode est valide
-		if (method == "GET" || method == "POST" || method == "DELETE")
+		if (method == "GET" || method == "POST" || method == "DELETE" || method == "HEAD")
 			locationConfig.setAllowedMethods(method);
 		else
 			throw std::runtime_error("Invalid method in allow_methods directive: " + method);

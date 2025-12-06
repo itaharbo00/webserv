@@ -6,7 +6,7 @@
 /*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 16:02:38 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/24 13:36:29 by wlarbi-a         ###   ########.fr       */
+/*   Updated: 2025/12/06 18:38:14 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,8 +16,8 @@ HttpResponse Router::serveStaticFile(const HttpRequest &request)
 {
 	HttpResponse response;
 
-	// Vérifier que la méthode est GET
-	if (request.getMethod() != "GET")
+	// Vérifier que la méthode est GET ou HEAD
+	if (request.getMethod() != "GET" && request.getMethod() != "HEAD")
 		return createErrorResponse(405, request.getHttpVersion());
 
 	std::string uri = request.getUri();
@@ -97,7 +97,9 @@ HttpResponse Router::serveStaticFile(const HttpRequest &request)
 						response.setHttpVersion(request.getHttpVersion());
 						response.setStatusCode(200);
 						response.setHeader("Content-Type", "text/html");
-						response.setBody(listing);
+						// HEAD ne renvoie pas de body
+						if (request.getMethod() != "HEAD")
+							response.setBody(listing);
 						response.setHeader("Connection", request.shouldCloseConnection() ? "close" : "keep-alive");
 						return response;
 					}
@@ -140,7 +142,9 @@ HttpResponse Router::serveStaticFile(const HttpRequest &request)
 	response.setHttpVersion(request.getHttpVersion());
 	response.setStatusCode(200);
 	response.setHeader("Content-Type", getContentType(filePath));
-	response.setBody(fileContent);
+	// HEAD ne renvoie pas de body
+	if (request.getMethod() != "HEAD")
+		response.setBody(fileContent);
 
 	// Gérer la connexion
 	if (request.shouldCloseConnection())

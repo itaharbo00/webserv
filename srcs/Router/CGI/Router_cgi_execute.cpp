@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Router_cgi_execute.cpp                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/16 16:30:42 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/18 17:23:55 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/12/06 18:46:06 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,13 +14,11 @@
 #include <fcntl.h> // fcntl, O_NONBLOCK
 
 // Valider la requête CGI avant l'exécution
-bool	Router::validateCgiRequest(const std::string &scriptPath,
-			const std::string &extension, const LocationConfig *location,
-			std::string &cgiPath) const
+bool Router::validateCgiRequest(const std::string &,
+								const std::string &extension, const LocationConfig *location,
+								std::string &cgiPath) const
 {
-	// Vérifier si le script existe et est exécutable
-	if (!fileExists(scriptPath) || !isRegularFile(scriptPath))
-		return false;
+	// Note: L'existence du fichier est déjà vérifiée dans executeCgi()
 
 	// Vérifier si l'extension est configurée pour le CGI dans la location
 	if (!location || !location->isCgiExtension(extension))
@@ -35,7 +33,7 @@ bool	Router::validateCgiRequest(const std::string &scriptPath,
 }
 
 // Configurer les pipes pour la communication avec le processus CGI
-bool	Router::setupCgiPipes(int pipe_in[2], int pipe_out[2]) const
+bool Router::setupCgiPipes(int pipe_in[2], int pipe_out[2]) const
 {
 	// Créer les pipes pour la communication
 	if (pipe(pipe_in) == -1)
@@ -53,9 +51,9 @@ bool	Router::setupCgiPipes(int pipe_in[2], int pipe_out[2]) const
 }
 
 // Exécuter le processus CGI dans le processus fils
-void	Router::executeCgiChild(int pipe_in[2], int pipe_out[2],
-			const std::string &cgiPath, const std::string &scriptPath,
-			char **env) const
+void Router::executeCgiChild(int pipe_in[2], int pipe_out[2],
+							 const std::string &cgiPath, const std::string &scriptPath,
+							 char **env) const
 {
 	// Rediriger l'entrée standard vers le pipe d'entrée
 	dup2(pipe_in[0], STDIN_FILENO);
@@ -73,11 +71,11 @@ void	Router::executeCgiChild(int pipe_in[2], int pipe_out[2],
 	args[1] = const_cast<char *>(scriptPath.c_str()); // Chemin absolu du script
 	args[2] = NULL;
 
-	//Exécuter le CGI
+	// Exécuter le CGI
 	execve(cgiPath.c_str(), args, env);
 
 	// Vérifier si le binaire CGI est exécutable
-	struct stat	st;
+	struct stat st;
 	if (stat(cgiPath.c_str(), &st) == 0)
 	{
 		if (!(st.st_mode & S_IXUSR))
@@ -91,32 +89,32 @@ void	Router::executeCgiChild(int pipe_in[2], int pipe_out[2],
 }
 
 // Gérer l'exécution du CGI dans le processus parent
-std::string	Router::executeCgiParent(int pipe_in[2], int pipe_out[2],
-				pid_t pid, const HttpRequest &request) const
+std::string Router::executeCgiParent(int pipe_in[2], int pipe_out[2],
+									 pid_t pid, const HttpRequest &request) const
 {
-	close(pipe_in[0]); // Fermer lecture du pipe d'entrée
+	close(pipe_in[0]);	// Fermer lecture du pipe d'entrée
 	close(pipe_out[1]); // Fermer écriture du pipe de sortie
 
-	int	flags = fcntl(pipe_out[0], F_GETFL, 0);
+	int flags = fcntl(pipe_out[0], F_GETFL, 0);
 	if (flags != -1)
 		fcntl(pipe_out[0], F_SETFL, flags | O_NONBLOCK); // Rendre non-bloquant
 
-	std::string	body = request.getBody();
+	std::string body = request.getBody();
 	if (!body.empty())
 	{
-		const char	*buf = body.c_str();
-		size_t		total = body.length();
-		size_t		sent = 0;
+		const char *buf = body.c_str();
+		size_t total = body.length();
+		size_t sent = 0;
 		while (sent < total)
 		{
 			// Écrire dans le pipe d'entrée
-			ssize_t	written = write(pipe_in[1], buf + sent, total - sent);
+			ssize_t written = write(pipe_in[1], buf + sent, total - sent);
 			if (written > 0)
-				sent += static_cast<size_t>(written); // Mettre à jour le nombre d'octets envoyés
+				sent += static_cast<size_t>(written);	// Mettre à jour le nombre d'octets envoyés
 			else if (written == -1 && (errno == EINTR)) // Interruption par un signal
 			{
 				usleep(1000); // Attendre un peu avant de réessayer
-				continue; // Retry on interrupt
+				continue;	  // Retry on interrupt
 			}
 			else
 			{
@@ -131,11 +129,11 @@ std::string	Router::executeCgiParent(int pipe_in[2], int pipe_out[2],
 	close(pipe_in[1]); // Fermer l'écriture après avoir envoyé le corps
 
 	// Lire la sortie du CGI avec timeout
-	std::string	cgiOutput;
-	char		buffer[4096];
-	ssize_t		bytesRead;
-	time_t		start_time = std::time(NULL);
-	const int	CGI_TIMEOUT = 30; // 30 secondes timeout pour CGI
+	std::string cgiOutput;
+	char buffer[4096];
+	ssize_t bytesRead;
+	time_t start_time = std::time(NULL);
+	const int CGI_TIMEOUT = 30; // 30 secondes timeout pour CGI
 
 	// Lire avec timeout
 	while (true)
@@ -143,7 +141,7 @@ std::string	Router::executeCgiParent(int pipe_in[2], int pipe_out[2],
 		// Vérifier le timeout
 		if (std::time(NULL) - start_time > CGI_TIMEOUT)
 		{
-			kill(pid, SIGKILL); // Tuer le processus CGI si timeout
+			kill(pid, SIGKILL);	   // Tuer le processus CGI si timeout
 			waitpid(pid, NULL, 0); // Nettoyer le processus zombie
 			close(pipe_out[0]);
 			throw std::runtime_error("CGI timeout: process killed after 30 seconds");
@@ -173,9 +171,9 @@ std::string	Router::executeCgiParent(int pipe_in[2], int pipe_out[2],
 	close(pipe_out[0]); // Fermer la lecture après avoir tout lu
 
 	// Attendre la fin du processus CGI (non-bloquant)
-	int	status;
-	int	wait_result = waitpid(pid, &status, WNOHANG);
-	
+	int status;
+	int wait_result = waitpid(pid, &status, WNOHANG);
+
 	// Si le processus n'est pas encore terminé, attendre un peu plus
 	if (wait_result == 0)
 	{
@@ -197,10 +195,10 @@ std::string	Router::executeCgiParent(int pipe_in[2], int pipe_out[2],
 	return cgiOutput; // Retourner la sortie CGI
 }
 
-void	Router::parseCgiOutput(const std::string &cgiOutput,
-			std::string &headers, std::string &body) const
+void Router::parseCgiOutput(const std::string &cgiOutput,
+							std::string &headers, std::string &body) const
 {
-	size_t	headerEnd = cgiOutput.find("\r\n\r\n");
+	size_t headerEnd = cgiOutput.find("\r\n\r\n");
 
 	if (headerEnd != std::string::npos)
 	{
@@ -225,17 +223,17 @@ void	Router::parseCgiOutput(const std::string &cgiOutput,
 	}
 }
 
-HttpResponse	Router::buildCgiResponse(const std::string &cgiHeaders,
-					const std::string &cgiBody, const HttpRequest &request) const
+HttpResponse Router::buildCgiResponse(const std::string &cgiHeaders,
+									  const std::string &cgiBody, const HttpRequest &request) const
 {
-	HttpResponse	response;
+	HttpResponse response;
 	response.setHttpVersion(request.getHttpVersion());
 	response.setStatusCode(200); // Par défaut, 200 OK
 	response.setBody(cgiBody);
 
 	// Parser les headers CGI
-	std::istringstream	headerStream(cgiHeaders);
-	std::string			line;
+	std::istringstream headerStream(cgiHeaders);
+	std::string line;
 
 	while (std::getline(headerStream, line))
 	{
@@ -245,22 +243,22 @@ HttpResponse	Router::buildCgiResponse(const std::string &cgiHeaders,
 		if (!line.empty() && line[line.length() - 1] == '\r')
 			line.erase(line.length() - 1);
 
-		size_t	colonPos = line.find(':');
+		size_t colonPos = line.find(':');
 		if (colonPos != std::string::npos)
 		{
-			std::string	key = line.substr(0, colonPos);
-			std::string	value = line.substr(colonPos + 1);
+			std::string key = line.substr(0, colonPos);
+			std::string value = line.substr(colonPos + 1);
 
 			// Enlever les espaces avant et après la valeur
-			size_t	start = value.find_first_not_of(" \t");
+			size_t start = value.find_first_not_of(" \t");
 			if (start != std::string::npos)
 				value = value.substr(start);
 
 			// Gérer le header Status pour définir le code de statut
 			if (key == "Status")
 			{
-				std::istringstream	statusStream(value);
-				int					statusCode;
+				std::istringstream statusStream(value);
+				int statusCode;
 				statusStream >> statusCode;
 				response.setStatusCode(statusCode);
 			}
@@ -288,26 +286,30 @@ HttpResponse	Router::buildCgiResponse(const std::string &cgiHeaders,
 	return response;
 }
 
-HttpResponse	Router::executeCgi(const HttpRequest &request,
-			const LocationConfig *location, const std::string &scriptPath)
+HttpResponse Router::executeCgi(const HttpRequest &request,
+								const LocationConfig *location, const std::string &scriptPath)
 {
-	// Valider la requête CGI
-	std::string	extension = getCgiExtension(scriptPath);
-	std::string	cgiPath;
+	// Vérifier d'abord si le fichier existe → 404
+	if (!fileExists(scriptPath) || !isRegularFile(scriptPath))
+		return createErrorResponse(404, request.getHttpVersion());
+
+	// Valider la configuration CGI (extension, cgi_pass) → 500
+	std::string extension = getCgiExtension(scriptPath);
+	std::string cgiPath;
 	if (!validateCgiRequest(scriptPath, extension, location, cgiPath))
 		return createErrorResponse(500, request.getHttpVersion());
 
 	// Configurer les pipes pour la communication CGI
-	int	pipe_in[2];
-	int	pipe_out[2];
+	int pipe_in[2];
+	int pipe_out[2];
 	if (!setupCgiPipes(pipe_in, pipe_out))
 		return createErrorResponse(500, request.getHttpVersion());
 
 	// Construire l'environnement CGI
-	char	**env = buildCgiEnv(request, location, scriptPath);
+	char **env = buildCgiEnv(request, location, scriptPath);
 
 	// Forker le processus pour exécuter le CGI
-	pid_t	pid = fork();
+	pid_t pid = fork();
 	if (pid < 0)
 	{
 		// Échec du fork
@@ -326,7 +328,7 @@ HttpResponse	Router::executeCgi(const HttpRequest &request,
 	else
 	{
 		// Envoyer le body de la requête au CGI et lire la sortie
-		std::string	cgiOutput;
+		std::string cgiOutput;
 		try
 		{
 			cgiOutput = executeCgiParent(pipe_in, pipe_out, pid, request);
@@ -347,8 +349,8 @@ HttpResponse	Router::executeCgi(const HttpRequest &request,
 			return createErrorResponse(500, request.getHttpVersion());
 
 		// Parser la sortie CGI
-		std::string	cgiHeaders;
-		std::string	cgiBody;
+		std::string cgiHeaders;
+		std::string cgiBody;
 		parseCgiOutput(cgiOutput, cgiHeaders, cgiBody);
 
 		// Construire et retourner la réponse HTTP
