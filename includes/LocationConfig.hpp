@@ -34,6 +34,7 @@ public:
 	std::string					getUploadStore() const;
 	int							getReturnCode() const;
 	std::string					getReturnUrl() const;
+	size_t						getClientMaxBodySize() const;
 
 	// Setters
 	void						setPath(const std::string &path);
@@ -43,6 +44,7 @@ public:
 	void						setAutoindex(bool autoindex);
 	void						setUploadStore(const std::string &uploadStore);
 	void						setReturn(int code, const std::string &url);
+	void						setClientMaxBodySize(size_t size);
 
 	// Checkers
 	bool						isMethodAllowed(const std::string &method) const;
@@ -68,6 +70,7 @@ private:
 	std::map<std::string, std::string>	p_cgi_pass;		  // {".php" → "/usr/bin/php-cgi", ".py" → "/usr/bin/python3", ".sh" → "/bin/bash"}
 	int									p_returnCode;	  // Code de redirection
 	std::string							p_returnUrl;	  // URL de redirection
+	size_t								p_clientMaxBodySize; // Taille max du body (0 = utiliser celle du serveur)
 };
 
 #endif	// LOCATIONCONFIG_HPP

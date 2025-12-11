@@ -89,6 +89,14 @@ void Config::directiveLocationChecker(const std::string &directive,
 			throw std::runtime_error("return directive missing code or URL");
 		parseReturn(line, locationConfig);
 	}
+	else if (directive == "client_max_body_size")
+	{
+		if (tokens.size() < 2)
+			throw std::runtime_error("client_max_body_size directive missing size");
+		parseLocationClientMaxBodySize(tokens[1], locationConfig);
+	}
 	else
+	{
 		throw std::runtime_error("Unknown directive in location block: " + directive);
+	}
 }

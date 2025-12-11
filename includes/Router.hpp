@@ -42,6 +42,14 @@ public:
 	// Générer une réponse d'erreur sans requête valide
 	HttpResponse createErrorResponse(int statusCode, const std::string &httpVersion);
 
+	// CGI asynchrone
+	bool isCgiRequest(const HttpRequest &request) const;
+	int startCgiAsync(const HttpRequest &request,
+					  const LocationConfig *location, const std::string &scriptPath,
+					  pid_t &pid) const;
+	HttpResponse buildCgiResponseAsync(const std::string &cgiOutput,
+								   const HttpRequest &request) const;
+
 private:
 	std::string p_root;					// Racine des fichiers à servir
 	const ServerConfig *p_serverConfig; // Configuration du serveur
@@ -81,9 +89,7 @@ private:
 								const HttpRequest &request) const;
 	char **convertEnvToArray(const std::vector<std::string> &env) const;
 	char **buildCgiEnv(const HttpRequest &request,
-					   const LocationConfig *location, const std::string &scriptPath);
-
-	// CGI execution
+				   const LocationConfig *location, const std::string &scriptPath) const;	// CGI execution
 	bool validateCgiRequest(const std::string &scriptPath,
 							const std::string &extension, const LocationConfig *location,
 							std::string &cgiPath) const;

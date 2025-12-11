@@ -117,6 +117,24 @@ HttpResponse Router::handlePost(const HttpRequest &request, const LocationConfig
 	if (itLength == headers.end() && itTransfer == headers.end())
 		return createErrorResponse(411, request.getHttpVersion()); // 411 Length Required
 
+	// Vérifier client_max_body_size
+	if (itLength != headers.end())
+	{
+		size_t contentLength = std::atol(itLength->second.c_str());
+		size_t maxBodySize = 0;
+
+		// Priorité à la location, sinon serveur
+		if (location && location->getClientMaxBodySize() > 0)
+			maxBodySize = location->getClientMaxBodySize();
+		else if (p_serverConfig)
+			maxBodySize = p_serverConfig->getClientMaxBodySize();
+
+		if (maxBodySize > 0 && contentLength > maxBodySize)
+		{
+			return createErrorResponse(413, request.getHttpVersion()); // 413 Payload Too Large
+		}
+	}
+
 	// 2. Récupérer le body (déjà dechunké si Transfer-Encoding: chunked)
 	std::string body = request.getBody();
 

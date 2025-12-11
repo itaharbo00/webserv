@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "LocationConfig.hpp"
+#include <iostream>
 
 std::string	LocationConfig::getPath() const
 {
@@ -50,4 +51,9 @@ int	LocationConfig::getReturnCode() const
 std::string	LocationConfig::getReturnUrl() const
 {
 	return p_returnUrl;
+}
+
+size_t	LocationConfig::getClientMaxBodySize() const
+{
+	return (p_clientMaxBodySize);
 }

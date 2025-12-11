@@ -28,6 +28,17 @@
 # include "Router.hpp"
 # include "Config.hpp"
 
+// Structure pour suivre les processus CGI asynchrones
+struct CgiProcess
+{
+	int			client_fd;		// FD du client qui a fait la requête
+	pid_t		pid;			// PID du processus CGI
+	int			pipe_fd;		// FD du pipe pour lire la sortie du CGI
+	time_t		start_time;		// Moment du lancement du CGI
+	std::string	output;			// Buffer pour accumuler la sortie du CGI
+	std::string	http_version;	// Version HTTP de la requête originale
+};
+
 class Server
 {
 public:
@@ -53,6 +64,8 @@ private:
 	std::map<int, std::string>	p_pending_responses;		 // Buffer pour envois partiels
 	std::map<int, size_t>		p_bytes_sent;			 // Compteur d'octets envoyés
 
+	std::map<int, CgiProcess>	p_cgi_processes;		 // Map pipe_fd → CgiProcess pour les CGI en cours
+
 	static const int			TIMEOUT_SECONDS = 60;	 // Timeout d'inactivité en secondes
 
 	void	initSocket();				// Initialisation des sockets (un par ServerConfig)
@@ -63,6 +76,7 @@ private:
 	bool	handleClient(size_t index);	// Gérer la communication avec un client (lecture)
 	bool	handleClientWrite(size_t index);// Gérer l'envoi des données en attente
 	void	checkTimeouts();			// Vérifier les timeouts des clients
+	void	checkCgiProcesses();		// Vérifier l'état des processus CGI asynchrones
 	void	closeClient(size_t index);	// Fermer la connexion d'un client
 	const ServerConfig*	selectServerConfig(int client_fd, const HttpRequest &request) const; // Sélectionner le ServerConfig approprié
 };

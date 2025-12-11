@@ -88,6 +88,8 @@ private:
 					  LocationConfig &locationConfig);
 	void parseReturn(const std::string &value,
 					 LocationConfig &locationConfig);
+	void parseLocationClientMaxBodySize(const std::string &value,
+										LocationConfig &locationConfig);
 
 	// Utils
 	size_t parseSizeValue(const std::string &sizeStr);

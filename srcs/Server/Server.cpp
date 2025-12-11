@@ -267,7 +267,69 @@ bool Server::handleClient(size_t index) // Gérer la communication avec un clien
 				// Créer un Router avec le bon ServerConfig
 				Router router(serverConfig);
 
-				// Router la requête pour obtenir une réponse
+				// Vérifier si c'est une requête CGI
+				if (router.isCgiRequest(request))
+				{
+					// Lancer le CGI en mode asynchrone
+					std::string uri = request.getUri();
+					const LocationConfig *location = serverConfig->findLocation(uri);
+					
+					std::string root = location->getRoot();
+					if (root.empty())
+						root = serverConfig->getRoot();
+
+					size_t queryPos = uri.find('?');
+					std::string uriPath = (queryPos != std::string::npos) ? uri.substr(0, queryPos) : uri;
+
+					std::string scriptPath;
+					if (uriPath[0] == '/' && root[root.size() - 1] == '/')
+						scriptPath = root + uriPath.substr(1);
+					else if (uriPath[0] != '/' && root[root.size() - 1] != '/')
+						scriptPath = root + "/" + uriPath;
+					else
+						scriptPath = root + uriPath;
+
+					pid_t pid;
+					int pipe_fd = router.startCgiAsync(request, location, scriptPath, pid);
+
+					if (pipe_fd >= 0)
+					{
+						// CGI lancé avec succès en mode asynchrone
+						CgiProcess cgi;
+						cgi.client_fd = client_fd;
+						cgi.pid = pid;
+						cgi.pipe_fd = pipe_fd;
+						cgi.start_time = std::time(NULL);
+						cgi.http_version = request.getHttpVersion();
+
+						// Ajouter le pipe_fd à la map des processus CGI
+						p_cgi_processes[pipe_fd] = cgi;
+
+						// Ajouter le pipe_fd à poll pour surveiller
+						struct pollfd pfd;
+						pfd.fd = pipe_fd;
+						pfd.events = POLLIN;
+						pfd.revents = 0;
+						p_fds.push_back(pfd);
+
+						// Nettoyer la requête du client (elle est maintenant dans CgiProcess)
+						p_clients_request.erase(client_fd);
+
+						return true; // Requête traitée, attendre le CGI
+					}
+					else
+					{
+						// Erreur de lancement du CGI - envoyer une erreur 500
+						HttpResponse errorResponse = router.createErrorResponse(500, request.getHttpVersion());
+						std::string response_str = errorResponse.toString();
+						p_pending_responses[client_fd] = response_str;
+						p_bytes_sent[client_fd] = 0;
+						p_fds[index].events = POLLOUT;
+						return true;
+					}
+				}
+
+				// Requête non-CGI : router normalement (synchrone)
 				HttpResponse response = router.route(request);
 
 				// Envoyer la réponse au client
@@ -441,6 +503,7 @@ void Server::start() // Méthode pour démarrer le serveur
 			}
 
 			checkTimeouts(); // Vérifier les timeouts des clients
+			checkCgiProcesses(); // Vérifier l'état des processus CGI asynchrones
 
 			// Parcourir les descripteurs pour vérifier lesquels ont des événements
 			for (size_t i = 0; i < p_fds.size(); ++i)

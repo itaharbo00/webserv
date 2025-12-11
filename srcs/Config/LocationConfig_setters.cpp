@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "LocationConfig.hpp"
+#include <iostream>
 
 void	LocationConfig::setPath(const std::string &path)
 {
@@ -48,4 +49,9 @@ void	LocationConfig::setReturn(int code, const std::string &url)
 {
 	p_returnCode = code; // Met à jour le code de redirection
 	p_returnUrl = url;   // Met à jour l'URL de redirection
+}
+
+void	LocationConfig::setClientMaxBodySize(size_t size)
+{
+	p_clientMaxBodySize = size;
 }

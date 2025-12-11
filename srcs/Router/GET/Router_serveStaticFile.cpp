@@ -6,7 +6,7 @@
 /*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 16:02:38 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/12/06 18:38:14 by wlarbi-a         ###   ########.fr       */
+/*   Updated: 2025/12/11 18:53:51 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,7 +64,7 @@ HttpResponse Router::serveStaticFile(const HttpRequest &request)
 		}
 
 		// Essayer d'abord de servir le fichier index configuré
-		std::string indexFile = "index.html"; // Par défaut
+		std::string indexFile = ""; // Par défaut
 
 		// Récupérer l'index depuis la configuration
 		if (p_serverConfig)
@@ -77,7 +77,7 @@ HttpResponse Router::serveStaticFile(const HttpRequest &request)
 		}
 
 		std::string indexPath = filePath + "/" + indexFile;
-		if (fileExists(indexPath) && isRegularFile(indexPath))
+		if (!indexFile.empty() && fileExists(indexPath) && isRegularFile(indexPath))
 		{
 			filePath = indexPath;
 		}

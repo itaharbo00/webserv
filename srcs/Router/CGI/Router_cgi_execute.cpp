@@ -359,3 +359,102 @@ HttpResponse Router::executeCgi(const HttpRequest &request,
 
 	return createErrorResponse(500, request.getHttpVersion());
 }
+
+// Lancer un CGI en mode asynchrone (non-bloquant)
+// Retourne le FD du pipe de lecture ou -1 en cas d'erreur
+int Router::startCgiAsync(const HttpRequest &request,
+						  const LocationConfig *location, const std::string &scriptPath,
+						  pid_t &pid) const
+{
+	// 1. Valider la requête CGI
+	std::string extension = getCgiExtension(scriptPath);
+	std::string cgiPath;
+	if (!validateCgiRequest(scriptPath, extension, location, cgiPath))
+		return -1;
+
+	// 2. Construire l'environnement CGI
+	char **env = buildCgiEnv(request, location, scriptPath);
+	if (!env)
+		return -1;
+
+	// 3. Créer les pipes
+	int pipe_in[2];
+	int pipe_out[2];
+	if (!setupCgiPipes(pipe_in, pipe_out))
+	{
+		freeCgiEnv(env);
+		return -1;
+	}
+
+	// 4. Fork pour créer le processus CGI
+	pid = fork();
+	if (pid == -1)
+	{
+		close(pipe_in[0]);
+		close(pipe_in[1]);
+		close(pipe_out[0]);
+		close(pipe_out[1]);
+		freeCgiEnv(env);
+		return -1;
+	}
+
+	// 5. Processus fils : exécute le CGI
+	if (pid == 0)
+	{
+		executeCgiChild(pipe_in, pipe_out, cgiPath, scriptPath, env);
+		// executeCgiChild ne retourne jamais (execve ou _exit)
+	}
+
+	// 6. Processus parent : préparer la communication
+	close(pipe_in[0]);	// Fermer lecture du pipe d'entrée
+	close(pipe_out[1]); // Fermer écriture du pipe de sortie
+
+	// 7. Écrire le body de la requête dans le pipe d'entrée (si nécessaire)
+	std::string body = request.getBody();
+	if (!body.empty())
+	{
+		const char *buf = body.c_str();
+		size_t total = body.length();
+		size_t sent = 0;
+		while (sent < total)
+		{
+			ssize_t written = write(pipe_in[1], buf + sent, total - sent);
+			if (written > 0)
+				sent += static_cast<size_t>(written);
+			else if (written == -1 && errno == EINTR)
+				continue;
+			else
+			{
+				// Erreur d'écriture - nettoyer
+				close(pipe_in[1]);
+				close(pipe_out[0]);
+				freeCgiEnv(env);
+				kill(pid, SIGKILL);
+				waitpid(pid, NULL, 0);
+				return -1;
+			}
+		}
+	}
+	close(pipe_in[1]); // Fermer écriture après envoi du body
+
+	// 8. Rendre le pipe de sortie non-bloquant
+	int flags = fcntl(pipe_out[0], F_GETFL, 0);
+	if (flags != -1)
+		fcntl(pipe_out[0], F_SETFL, flags | O_NONBLOCK);
+
+	freeCgiEnv(env);
+	return pipe_out[0]; // Retourner le FD du pipe de lecture
+}
+
+// Construire une réponse HTTP à partir de la sortie CGI complète
+HttpResponse Router::buildCgiResponseAsync(const std::string &cgiOutput,
+										   const HttpRequest &) const
+{
+	std::string cgiHeaders;
+	std::string cgiBody;
+	parseCgiOutput(cgiOutput, cgiHeaders, cgiBody);
+	
+	// Créer une requête par défaut avec HTTP/1.1
+	HttpRequest defaultRequest;
+	return buildCgiResponse(cgiHeaders, cgiBody, defaultRequest);
+}

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerConfig.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: itaharbo <itaharbo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 16:20:32 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/14 18:41:54 by itaharbo         ###   ########.fr       */
+/*   Updated: 2025/12/11 18:51:20 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,9 +15,10 @@
 
 ServerConfig::ServerConfig()
 	: p_listen(8080), p_serverName("localhost"), p_root("./www"),
-	p_index("index.html"), p_clientMaxBodySize(MAX_BODY_SIZE_DEFAULT),
+	p_index(""), p_clientMaxBodySize(MAX_BODY_SIZE_DEFAULT),
 	p_errorPages(), p_locations()
 {
+	p_locations.reserve(10); // Réserve de l'espace pour éviter les copies
 }
 
 ServerConfig::~ServerConfig()

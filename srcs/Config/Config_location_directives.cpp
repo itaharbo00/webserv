@@ -108,3 +108,14 @@ void Config::parseReturn(const std::string &value, LocationConfig &locationConfi
 
 	locationConfig.setReturn(code, url);
 }
+
+void Config::parseLocationClientMaxBodySize(const std::string &value,
+											LocationConfig &locationConfig)
+{
+	std::string cleanValue = value;
+	if (!cleanValue.empty() && cleanValue[cleanValue.length() - 1] == ';')
+		cleanValue = cleanValue.substr(0, cleanValue.length() - 1);
+	
+	size_t size = parseSizeValue(cleanValue);
+	locationConfig.setClientMaxBodySize(size);
+}

@@ -173,7 +173,7 @@ char	**Router::convertEnvToArray(const std::vector<std::string> &env) const
 
 // Construire l'environnement complet pour le CGI
 char	**Router::buildCgiEnv(const HttpRequest &request,
-			const LocationConfig *location, const std::string &scriptPath)
+			const LocationConfig *location, const std::string &scriptPath) const
 {
 	(void)location; // Pour l'instant inutilisé, mais peut être utile plus tard
 	std::vector<std::string>	env;

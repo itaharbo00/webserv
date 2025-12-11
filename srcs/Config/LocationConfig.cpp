@@ -11,17 +11,19 @@
 /* ************************************************************************** */
 
 #include "LocationConfig.hpp"
+#include <iostream>
 
 LocationConfig::LocationConfig() : p_path("/"), p_allowedMethods(), p_root(""),
-	p_index(""), p_autoindex(false), p_uploadStore(""), p_returnCode(0),
-	p_returnUrl("")
+	p_index(""), p_autoindex(false), p_uploadStore(""), p_cgi_pass(),
+	p_returnCode(0), p_returnUrl(""), p_clientMaxBodySize(0)
 {
 	// p_path = "/" par défaut (location root)
 }
 
 LocationConfig::LocationConfig(const std::string &path) : p_path(path),
 	p_allowedMethods(), p_root(""), p_index(""), p_autoindex(false),
-	p_uploadStore(""), p_returnCode(0), p_returnUrl("")
+	p_uploadStore(""), p_cgi_pass(), p_returnCode(0), p_returnUrl(""),
+	p_clientMaxBodySize(0)
 {
 }
 

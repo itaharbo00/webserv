@@ -23,8 +23,8 @@
 # include <cstring>
 # include <cstdlib>
 
-# define MAX_HEADER_LINE_SIZE 8192  // 8 KB
-# define MAX_REQUEST_SIZE 1048576 // 1 MB
+#define MAX_HEADER_LINE_SIZE 8192 // 8 KB
+#define MAX_REQUEST_SIZE 209715200 // 200 MB
 
 class HttpRequest
 {

@@ -219,3 +219,49 @@ std::string Router::generateRedirectPage(int statusCode,
 
 	return pageBody;
 }
+
+// Détecte si une requête est une requête CGI
+bool Router::isCgiRequest(const HttpRequest &request) const
+{
+	if (!p_serverConfig)
+		return false;
+
+	std::string uri = request.getUri();
+	const LocationConfig *location = p_serverConfig->findLocation(uri);
+	if (!location)
+		return false;
+
+	// Vérifier si la location a des CGI configurés
+	const std::map<std::string, std::string> &cgiMap = location->getCgiPassMap();
+	if (cgiMap.empty())
+		return false;
+
+	// Construire le chemin du fichier
+	std::string root = location->getRoot();
+	if (root.empty())
+		root = p_serverConfig->getRoot();
+
+	std::string filePath;
+	size_t queryPos = uri.find('?');
+	std::string uriPath = (queryPos != std::string::npos) ? uri.substr(0, queryPos) : uri;
+
+	if (uriPath[0] == '/' && root[root.size() - 1] == '/')
+		filePath = root + uriPath.substr(1);
+	else if (uriPath[0] != '/' && root[root.size() - 1] != '/')
+		filePath = root + "/" + uriPath;
+	else
+		filePath = root + uriPath;
+
+	// Vérifier l'extension
+	std::string extension = getCgiExtension(filePath);
+	if (extension.empty())
+		return false;
+
+	// Vérifier si cette extension est gérée par un CGI
+	std::map<std::string, std::string>::const_iterator it = cgiMap.find(extension);
+	if (it == cgiMap.end())
+		return false;
+
+	// Vérifier que le fichier existe
+	return fileExists(filePath);
+}
