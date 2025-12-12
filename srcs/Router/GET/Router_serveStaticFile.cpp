@@ -6,7 +6,7 @@
 /*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/13 16:02:38 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/12/11 18:53:51 by wlarbi-a         ###   ########.fr       */
+/*   Updated: 2025/12/12 22:39:28 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,9 +88,17 @@ HttpResponse Router::serveStaticFile(const HttpRequest &request)
 			if (p_serverConfig)
 			{
 				const LocationConfig *location = p_serverConfig->findLocation(uri);
-				if (location && location->getAutoindex())
+				bool autoindexEnabled = false;
+
+				// If location exists and has explicit autoindex, use it
+				if (location && location->isAutoindexSet())
+					autoindexEnabled = location->getAutoindex();
+				// Otherwise inherit from server
+				else
+					autoindexEnabled = p_serverConfig->getAutoindex();
+
+				if (autoindexEnabled)
 				{
-					// Générer le listing du répertoire
 					try
 					{
 						std::string listing = generateDirectoryListing(filePath, uri);

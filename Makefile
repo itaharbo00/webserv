@@ -6,14 +6,14 @@
 #    By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/10/31 20:03:22 by itaharbo          #+#    #+#              #
-#    Updated: 2025/11/26 17:49:23 by wlarbi-a         ###   ########.fr        #
+#    Updated: 2025/12/11 19:44:41 by wlarbi-a         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME		= webserv
 
 CC			= c++
-CFLAGS		= -Wall -Wextra -Werror -std=c++98
+CFLAGS		= -Wall -Wextra -Werror -std=c++98 -g3
 INCLUDES	= -I includes
 
 SRCDIR		= srcs

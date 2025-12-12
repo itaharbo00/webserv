@@ -6,7 +6,7 @@
 /*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/12 23:56:45 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/26 17:49:23 by wlarbi-a         ###   ########.fr       */
+/*   Updated: 2025/12/11 20:48:19 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,7 @@ public:
 					  const LocationConfig *location, const std::string &scriptPath,
 					  pid_t &pid) const;
 	HttpResponse buildCgiResponseAsync(const std::string &cgiOutput,
-								   const HttpRequest &request) const;
+									   const HttpRequest &request) const;
 
 private:
 	std::string p_root;					// Racine des fichiers à servir
@@ -89,7 +89,7 @@ private:
 								const HttpRequest &request) const;
 	char **convertEnvToArray(const std::vector<std::string> &env) const;
 	char **buildCgiEnv(const HttpRequest &request,
-				   const LocationConfig *location, const std::string &scriptPath) const;	// CGI execution
+					   const LocationConfig *location, const std::string &scriptPath) const; // CGI execution
 	bool validateCgiRequest(const std::string &scriptPath,
 							const std::string &extension, const LocationConfig *location,
 							std::string &cgiPath) const;

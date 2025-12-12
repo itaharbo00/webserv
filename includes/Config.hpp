@@ -6,7 +6,7 @@
 /*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/14 16:16:57 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/24 13:38:13 by wlarbi-a         ###   ########.fr       */
+/*   Updated: 2025/12/12 22:39:27 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,12 +70,12 @@ private:
 				   ServerConfig &serverConfig);
 	void parseIndex(const std::string &value,
 					ServerConfig &serverConfig);
+	void parseServerAutoindex(const std::string &value,
+							  ServerConfig &serverConfig);
 	void parseClientMaxBodySize(const std::string &value,
 								ServerConfig &serverConfig);
 	void parseErrorPage(const std::string &value,
-						ServerConfig &serverConfig);
-
-	// Directive parsers (Location level)
+						ServerConfig &serverConfig); // Directive parsers (Location level)
 	void parseAllowedMethods(const std::string &value,
 							 LocationConfig &locationConfig);
 	void parseAutoindex(const std::string &value,

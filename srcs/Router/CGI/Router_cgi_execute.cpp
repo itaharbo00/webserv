@@ -6,7 +6,7 @@
 /*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/16 16:30:42 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/12/06 18:46:06 by wlarbi-a         ###   ########.fr       */
+/*   Updated: 2025/12/11 20:48:19 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,9 +51,12 @@ bool Router::setupCgiPipes(int pipe_in[2], int pipe_out[2]) const
 }
 
 // Exécuter le processus CGI dans le processus fils
-void Router::executeCgiChild(int pipe_in[2], int pipe_out[2],
-							 const std::string &cgiPath, const std::string &scriptPath,
-							 char **env) const
+void Router::executeCgiChild(
+	int pipe_in[2],
+	int pipe_out[2],
+	const std::string &cgiPath,
+	const std::string &scriptPath,
+	char **env) const
 {
 	// Rediriger l'entrée standard vers le pipe d'entrée
 	dup2(pipe_in[0], STDIN_FILENO);
@@ -453,7 +456,7 @@ HttpResponse Router::buildCgiResponseAsync(const std::string &cgiOutput,
 	std::string cgiHeaders;
 	std::string cgiBody;
 	parseCgiOutput(cgiOutput, cgiHeaders, cgiBody);
-	
+
 	// Créer une requête par défaut avec HTTP/1.1
 	HttpRequest defaultRequest;
 	return buildCgiResponse(cgiHeaders, cgiBody, defaultRequest);

@@ -6,7 +6,7 @@
 /*   By: wlarbi-a <wlarbi-a@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/31 20:03:29 by itaharbo          #+#    #+#             */
-/*   Updated: 2025/11/22 18:02:15 by wlarbi-a         ###   ########.fr       */
+/*   Updated: 2025/12/12 22:42:12 by wlarbi-a         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -273,7 +273,7 @@ bool Server::handleClient(size_t index) // Gérer la communication avec un clien
 					// Lancer le CGI en mode asynchrone
 					std::string uri = request.getUri();
 					const LocationConfig *location = serverConfig->findLocation(uri);
-					
+
 					std::string root = location->getRoot();
 					if (root.empty())
 						root = serverConfig->getRoot();
@@ -502,7 +502,7 @@ void Server::start() // Méthode pour démarrer le serveur
 				throw std::runtime_error("poll() failed");
 			}
 
-			checkTimeouts(); // Vérifier les timeouts des clients
+			checkTimeouts();	 // Vérifier les timeouts des clients
 			checkCgiProcesses(); // Vérifier l'état des processus CGI asynchrones
 
 			// Parcourir les descripteurs pour vérifier lesquels ont des événements
@@ -532,7 +532,20 @@ void Server::start() // Méthode pour démarrer le serveur
 						}
 					}
 
+					// Vérifier si c'est un pipe CGI
+					bool is_cgi_pipe = false;
 					if (!is_server_fd)
+					{
+						std::map<int, CgiProcess>::iterator it = p_cgi_processes.find(p_fds[i].fd);
+						if (it != p_cgi_processes.end())
+						{
+							is_cgi_pipe = true;
+							// Les pipes CGI sont gérés par checkCgiProcesses()
+							// On ne fait rien ici pour éviter les lectures dupliquées
+						}
+					}
+
+					if (!is_server_fd && !is_cgi_pipe)
 					{
 						try
 						{
