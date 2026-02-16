@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Webserv</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>📖 About Webserv</h1>
+    </header>
+    
+    <nav>
+        <a href="/">Home</a>
+        <a href="/about.html">About</a>
+        <a href="/test/test_1.html">Test Page</a>
+    </nav>
+    
+    <main>
+        <section>
+            <h2>What is Webserv?</h2>
+            <p>Webserv is a lightweight HTTP/1.1 web server implementation in C++, created as a 42 school project.</p>
+        </section>
+        
+        <section>
+            <h2>Technical Details</h2>
+            <ul>
+                <li><strong>Language:</strong> C++98</li>
+                <li><strong>Protocol:</strong> HTTP/1.0 and HTTP/1.1</li>
+                <li><strong>Architecture:</strong> Non-blocking I/O with poll()</li>
+                <li><strong>Features:</strong> Keep-alive, chunked transfer, static files</li>
+            </ul>
+        </section>
+        
+        <section>
+            <h2>RFC Compliance</h2>
+            <p>This server follows the HTTP specifications defined in:</p>
+            <ul>
+                <li>RFC 7230 (HTTP/1.1 Message Syntax and Routing)</li>
+                <li>RFC 9110 (HTTP Semantics)</li>
+            </ul>
+        </section>
+        
+        <section>
+            <h2>Project Structure</h2>
+            <ul>
+                <li><code>includes/</code> - Header files</li>
+                <li><code>srcs/</code> - Source files</li>
+                <li><code>www/</code> - Static files served by the server</li>
+                <li><code>tests/</code> - Unit and integration tests</li>
+            </ul>
+        </section>
+    </main>
+    
+    <footer>
+        <p>Webserv &copy; 2025 - Made at 42</p>
+    </footer>
+</body>
+</html>
